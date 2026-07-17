@@ -1,11 +1,19 @@
 // Fuse app-template.html + fonts + Vue + logo + textures + sample cover into one self-contained HTML file.
+// If default-kit.json exists next to this script, it's baked in as the app's
+// default book (what first-time visitors and "Reset" see).
 // Usage: node build.mjs <output-path>
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const here = (f) => new URL('./' + f, import.meta.url);
 const out = process.argv[2] || 'pinterest-studio-authors.html';
 
 let html = readFileSync(here('app-template.html'), 'utf8');
+
+if (existsSync(here('default-kit.json'))) {
+  const kit = JSON.stringify(JSON.parse(readFileSync(here('default-kit.json'), 'utf8')));
+  html = html.replace('/*__DEFAULT_KIT__*/null', kit.replaceAll('</script', '<\\/script'));
+  console.log('baked in default-kit.json');
+}
 const fonts = readFileSync(here('fonts.css'), 'utf8');
 // Escape any </script> sequence so inlining can't terminate the script tag early
 const vue = readFileSync(here('vue.global.prod.js'), 'utf8').replaceAll('</script', '<\\/script');

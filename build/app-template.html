@@ -67,6 +67,7 @@
   .pin.dark .hook-list .check { color: var(--board); }
 
   .mono-url { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.08em; opacity: 0.75; text-align: center; }
+  .pin.dark .mono-url { color: #FFFFFF; opacity: 0.9; }
 
   .stars { color: #F5A623; font-size: 58px; letter-spacing: 0.18em; line-height: 1; }
   .quote-mark { font-family: Georgia, serif; font-size: 200px; line-height: 0.5; height: 80px; opacity: 0.25; }
@@ -96,40 +97,12 @@
   .amazon-badge.small .amz svg { height: 13px; }
 
   /* ---- 3D book mockup ----
-     One wrapper carries a single perspective transform (exports reliably through
-     SVG foreignObject); the page block is layered box-shadows that rotate with it. */
+     The hardcover is pre-rendered to a raster image on a canvas (perspective
+     cover, paper fore-edge, back board, lighting and ground shadow all baked
+     in) because the SVG export path flattens CSS 3D transforms. The component
+     just shows that image, so preview and exported PNG are identical. */
   .book3d { position: relative; }
-  .book3d-body {
-    position: relative;
-    transform: perspective(2600px) rotateY(-24deg);
-    transform-origin: left center;
-    border-radius: 4px 14px 14px 4px;
-    background: #fff;
-    box-shadow:
-      4px 3px 0 -1px #FBF8F1, 5px 4px 0 0 #DED8C9,
-      10px 7px 0 -1px #FBF8F1, 11px 8px 0 0 #DED8C9,
-      16px 11px 0 -1px #FBF8F1, 17px 12px 0 0 #D6CFBE,
-      22px 15px 0 -1px #FBF8F1, 23px 16px 0 0 #CEC6B2,
-      44px 34px 70px rgba(0,0,0,0.38);
-  }
-  .book3d-body img { width: 100%; height: auto; border-radius: inherit; }
-  .book3d-crease {
-    position: absolute; inset: 0; border-radius: inherit;
-    background: linear-gradient(90deg,
-      rgba(0,0,0,0.30) 0%, rgba(255,255,255,0.20) 2.6%,
-      rgba(0,0,0,0.16) 5.2%, rgba(0,0,0,0) 10%);
-  }
-  .book3d-sheen {
-    position: absolute; inset: 0; border-radius: inherit;
-    background: linear-gradient(100deg,
-      rgba(255,255,255,0) 55%, rgba(255,255,255,0.10) 74%,
-      rgba(255,255,255,0) 90%);
-  }
-  .book3d-shadow {
-    position: absolute; left: -2%; right: -10%; bottom: -5%; height: 9%;
-    background: radial-gradient(ellipse at 45% 50%, rgba(0,0,0,0.42), rgba(0,0,0,0) 68%);
-    filter: blur(10px);
-  }
+  .book3d img { width: 100%; height: auto; }
   .book3d.tilt { transform: rotate(var(--tilt, -1.5deg)); }
 </style>
 
@@ -241,10 +214,7 @@
       <section>
         <h2>Your book</h2>
         <div class="btn-row">
-          <button class="btn-sticker btn-small" @click="$refs.kitFile.click()">Load book kit</button>
-          <button class="btn-sticker btn-small" @click="saveKit">Save book kit</button>
           <button class="btn-sticker btn-small btn-ghost" @click="resetAll">Reset</button>
-          <input type="file" ref="kitFile" accept=".json,application/json" style="display:none" @change="loadKit">
         </div>
 
         <label>Book cover <span class="hint">(pin colors are matched to it automatically)</span></label>
@@ -319,7 +289,8 @@
       <section>
         <h2>Design</h2>
         <div class="btn-row">
-          <button class="btn-sticker btn-small btn-ghost" @click="extractFromCover">Re-match colors to cover</button>
+          <button class="btn-sticker btn-small btn-ghost" @click="extractFromCover(true)">Re-match colors to cover</button>
+          <button class="btn-sticker btn-small btn-ghost" v-if="canUndoRematch" @click="undoRematch" title="Put the colors back the way they were before the last re-match">Undo re-match</button>
         </div>
         <label>Colors <span class="hint">(tap a square to change it)</span></label>
         <div class="color-grid">
@@ -337,8 +308,13 @@
         <select v-model="brand.style">
           <option value="soft">Elegant — soft shadows &amp; rounded</option>
           <option value="clean">Modern — flat &amp; minimal</option>
-          <option value="workshop">Storybook — tape &amp; texture</option>
+          <option value="workshop">Handmade — paper grain &amp; taped-on labels</option>
           <option value="bold">Bold — thick lines &amp; pills</option>
+        </select>
+        <label>Book mockup <span class="hint">(how your cover appears on the pins)</span></label>
+        <select v-model="book.mockup" title="3D shows your book at an angle, like a hardcover sitting on a table — visible pages, thickness, and shadow. Flat shows just the cover, face-on.">
+          <option value="3d">3D — angled hardcover with pages &amp; shadow</option>
+          <option value="flat">Flat — just the cover, straight on</option>
         </select>
       </section>
 
@@ -387,7 +363,7 @@
                 <div class="tape-badge" style="font-size: 30px; padding: 13px 38px;">{{ a.badge }}</div>
                 <h1 class="headline" style="font-size: 80px; text-align: center; margin-top: 30px;" v-html="fmt(book.title, book.highlight)"></h1>
                 <p class="subhead" style="font-size: 33px; text-align: center; margin-top: 24px; max-width: 830px;">{{ a.blurb }}</p>
-                <book-3d :cover="book.cover" style="width: 340px; margin-top: 44px;"></book-3d>
+                <book-3d :cover="book.cover" :mode="book.mockup" style="width: 340px; margin-top: 44px;"></book-3d>
                 <amazon-badge v-if="avail.amazon" small style="margin-top: auto;"></amazon-badge>
                 <div class="avail-line" style="margin-top: 14px;" v-if="avail.line">{{ avail.line }}</div>
                 <div class="cta-btn" style="font-size: 42px; padding: 26px 72px; margin-top: 26px;">{{ a.cta }}</div>
@@ -400,7 +376,7 @@
                 <div class="tape-badge" style="font-size: 32px; padding: 15px 42px;">{{ a.badge }}</div>
                 <h1 class="headline" style="font-size: 94px; text-align: center; margin-top: 48px;" v-html="fmt(book.title, book.highlight)"></h1>
                 <p class="subhead" style="font-size: 37px; text-align: center; margin-top: 34px; max-width: 830px;">{{ a.blurb }}</p>
-                <book-3d :cover="book.cover" style="width: 430px; margin-top: 64px;"></book-3d>
+                <book-3d :cover="book.cover" :mode="book.mockup" style="width: 430px; margin-top: 64px;"></book-3d>
                 <ul class="hook-list" style="margin-top: auto; padding-top: 56px; max-width: 800px;">
                   <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
                 </ul>
@@ -415,9 +391,9 @@
                    style="padding: 60px 84px 46px; align-items: center;">
                 <div class="stars">{{ '★'.repeat(b.stars) }}</div>
                 <div class="quote-mark" style="margin-top: 42px;">“</div>
-                <p class="quote-text" style="font-size: 56px; text-align: center; max-width: 830px;">{{ b.quote }}</p>
+                <p class="quote-text" :style="{ fontSize: quoteSize(56) }" style="text-align: center; max-width: 830px;">{{ b.quote }}</p>
                 <div class="quote-attr" style="margin-top: 26px;">— {{ b.attribution }}</div>
-                <book-3d :cover="book.cover" style="width: 330px; margin-top: auto;"></book-3d>
+                <book-3d :cover="book.cover" :mode="book.mockup" style="width: 330px; margin-top: auto;"></book-3d>
                 <div class="byline" style="font-size: 32px; margin-top: 44px;">{{ book.author }}</div>
                 <amazon-badge v-if="avail.amazon" small style="margin-top: auto;"></amazon-badge>
                 <div class="cta-btn" style="font-size: 40px; padding: 24px 68px; margin-top: 26px;">{{ b.cta }}</div>
@@ -428,12 +404,12 @@
               <div v-if="p.id === '2b'" class="pin tall dark" data-pin="2b" data-name="quote" :style="pinVars"
                    style="padding: 96px 84px 64px; align-items: center;">
                 <div class="stars">{{ '★'.repeat(b.stars) }}</div>
-                <div class="quote-mark" style="margin-top: 60px;">“</div>
-                <p class="quote-text" style="font-size: 66px; text-align: center; max-width: 830px;">{{ b.quote }}</p>
+                <div class="quote-mark" style="margin-top: 44px;">“</div>
+                <p class="quote-text" :style="{ fontSize: quoteSize(66) }" style="text-align: center; max-width: 830px;">{{ b.quote }}</p>
                 <div class="quote-attr" style="margin-top: 36px;">— {{ b.attribution }}</div>
-                <book-3d :cover="book.cover" style="width: 430px; margin-top: auto;"></book-3d>
-                <div class="byline" style="font-size: 36px; margin-top: 60px;">{{ book.author }}</div>
-                <ul class="hook-list" style="margin-top: auto; padding-top: 70px; max-width: 800px;">
+                <book-3d :cover="book.cover" :mode="book.mockup" style="width: 390px; margin-top: auto;"></book-3d>
+                <div class="byline" style="font-size: 36px; margin-top: 48px;">{{ book.author }}</div>
+                <ul class="hook-list" style="margin-top: auto; padding-top: 54px; max-width: 800px;">
                   <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
                 </ul>
                 <amazon-badge v-if="avail.amazon" style="margin-top: auto;"></amazon-badge>
@@ -447,7 +423,7 @@
                 <h1 class="headline" style="font-size: 76px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
                 <div style="position: relative; width: 360px; margin-top: 54px;">
                   <div class="tape-badge" style="font-size: 28px; padding: 12px 30px; position: absolute; top: -24px; right: -56px; z-index: 2; transform: rotate(calc(var(--badge-rotate, -2deg) * -1.5));">{{ c.corner }}</div>
-                  <book-3d :cover="book.cover" tilt="tilt"></book-3d>
+                  <book-3d :cover="book.cover" :mode="book.mockup" tilt="tilt"></book-3d>
                 </div>
                 <ul class="hook-list" style="margin-top: auto; padding-top: 50px; max-width: 800px;">
                   <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
@@ -461,9 +437,9 @@
               <div v-if="p.id === '2c'" class="pin tall light" :class="pinClass" data-pin="2c" data-name="reader" :style="pinVars"
                    style="padding: 96px 76px 60px; align-items: center;">
                 <h1 class="headline" style="font-size: 86px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
-                <div style="position: relative; width: 470px; margin-top: 90px;">
+                <div style="position: relative; width: 470px; margin-top: 78px;">
                   <div class="tape-badge" style="font-size: 30px; padding: 13px 34px; position: absolute; top: -26px; right: -60px; z-index: 2; transform: rotate(calc(var(--badge-rotate, -2deg) * -1.5));">{{ c.corner }}</div>
-                  <book-3d :cover="book.cover" tilt="tilt"></book-3d>
+                  <book-3d :cover="book.cover" :mode="book.mockup" tilt="tilt"></book-3d>
                 </div>
                 <p class="subhead" style="font-size: 36px; text-align: center; margin-top: 90px; max-width: 820px;">{{ a.blurb }}</p>
                 <ul class="hook-list" style="margin-top: auto; padding-top: 80px; max-width: 800px;">
@@ -488,12 +464,7 @@
 <!-- 3D book mockup -->
 <script type="text/x-template" id="book3d-tpl">
   <div class="book3d" :class="tilt">
-    <div class="book3d-shadow"></div>
-    <div class="book3d-body">
-      <img :src="cover" alt="">
-      <div class="book3d-crease"></div>
-      <div class="book3d-sheen"></div>
-    </div>
+    <img v-if="src" :src="src" alt="">
   </div>
 </script>
 
@@ -512,6 +483,9 @@
 <script>
 const LOGO_DEFAULT = '__LOGO_DATA__';
 const COVER_DEFAULT = '__COVER_DATA__';
+// The owner's book setup, baked in at build time (null = built-in sample book).
+// First-time visitors and "Reset" both land on this.
+const DEFAULT_KIT = /*__DEFAULT_KIT__*/null;
 
 const { createApp, reactive, computed, watch, watchEffect } = Vue;
 
@@ -523,8 +497,20 @@ const FONT_PAIRS = [
   { id: 'cormorant', label: 'Classic — Cormorant Garamond', display: 'Cormorant Garamond', body: 'Inter', dw: '500;600;700', bw: '', tracking: '0em' },
   { id: 'lora', label: 'Editorial — Lora', display: 'Lora', body: 'Inter', dw: '400;500;600;700', bw: '', tracking: '0em' },
   { id: 'libre', label: 'Bookish — Libre Baskerville', display: 'Libre Baskerville', body: 'Inter', dw: '400;700', bw: '', tracking: '-0.005em' },
+  { id: 'ebgaramond', label: 'Timeless — EB Garamond', display: 'EB Garamond', body: 'Inter', dw: '400;600;700;800', bw: '', tracking: '0em' },
+  { id: 'crimson', label: 'Refined — Crimson Pro', display: 'Crimson Pro', body: 'Inter', dw: '400;600;700;900', bw: '', tracking: '0em' },
+  { id: 'spectral', label: 'Sophisticated — Spectral', display: 'Spectral', body: 'Inter', dw: '400;600;700;800', bw: '', tracking: '-0.005em' },
+  { id: 'caslon', label: 'Traditional — Libre Caslon', display: 'Libre Caslon Text', body: 'Inter', dw: '400;700', bw: '', tracking: '0em' },
+  { id: 'cardo', label: 'Scholarly — Cardo', display: 'Cardo', body: 'Inter', dw: '400;700', bw: '', tracking: '0em' },
+  { id: 'theano', label: 'High fashion — Theano Didot', display: 'Theano Didot', body: 'Inter', dw: '400', bw: '', tracking: '0.01em' },
+  { id: 'young', label: 'Warm & sturdy — Young Serif', display: 'Young Serif', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
+  { id: 'benne', label: 'Gentle — Benne', display: 'Benne', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
   { id: 'inter', label: 'Bold & modern — Inter', display: 'Inter', body: 'Inter', tracking: '-0.03em' },
   { id: 'montserrat', label: 'Geometric — Montserrat', display: 'Montserrat', body: 'Montserrat', dw: '400;600;700;800;900', bw: '400;600;700', tracking: '-0.02em' },
+  { id: 'opensans', label: 'Friendly — Open Sans', display: 'Open Sans', body: 'Open Sans', dw: '400;600;700;800', bw: '400;600;700', tracking: '-0.015em' },
+  { id: 'sourcesans', label: 'Clean — Source Sans Pro', display: 'Source Sans 3', body: 'Source Sans 3', dw: '400;600;700;900', bw: '400;600;700', tracking: '-0.015em' },
+  { id: 'ptsans', label: 'Practical — PT Sans', display: 'PT Sans', body: 'PT Sans', dw: '400;700', bw: '400;700', tracking: '-0.01em' },
+  { id: 'rosario', label: 'Airy — Rosario', display: 'Rosario', body: 'Rosario', dw: '400;600;700', bw: '400;600;700', tracking: '-0.005em' },
   { id: 'abril', label: 'Dramatic — Abril Fatface', display: 'Abril Fatface', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
   { id: 'caveat', label: 'Handwritten — Caveat + Inter', display: 'Caveat', body: 'Inter', dw: '400;600;700', bw: '', tracking: '0em' },
 ];
@@ -545,6 +531,7 @@ function defaultBook() {
     author: 'ELENA MARSH',
     url: 'elenamarsh.com',
     cover: COVER_DEFAULT,
+    mockup: '3d',
   };
 }
 
@@ -575,6 +562,7 @@ const app = createApp({
       output: { templates: { a: true, b: true, c: true }, sizes: { std: true, tall: false } },
       exporting: false,
       importMsg: '',
+      undoColors: null, // palette snapshot from before the last "re-match colors"
     });
 
     const hooks = computed(() => state.hooksText.split('\n').map(s => s.trim()).filter(Boolean));
@@ -678,6 +666,12 @@ const app = createApp({
       return '#' + pa.map((v, i) => Math.round(v * ratio + pb[i] * (1 - ratio)).toString(16).padStart(2, '0')).join('');
     }
 
+    // Long review quotes shrink so the dark pin never clips its bottom content
+    function quoteSize(base) {
+      const len = (b.quote || '').trim().length;
+      const k = Math.max(0.58, Math.min(1, Math.sqrt(100 / Math.max(1, len))));
+      return Math.round(base * k) + 'px';
+    }
     function esc(s) {
       return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
@@ -769,13 +763,24 @@ const app = createApp({
       return classifyClusters(merged);
     }
 
-    async function extractFromCover() {
+    // `offerUndo` is true only for the sidebar button — the automatic match on
+    // cover upload replaces a palette that belonged to a different cover, so
+    // offering to restore it there would just confuse.
+    async function extractFromCover(offerUndo) {
       try {
-        Object.assign(brand.colors, await extractCoverColors(book.cover));
+        const next = await extractCoverColors(book.cover);
+        state.undoColors = offerUndo === true ? { ...brand.colors } : null;
+        Object.assign(brand.colors, next);
         state.importMsg = 'Pin colors matched to your cover — adjust any swatch below.';
       } catch {
         state.importMsg = "Couldn't read the cover image.";
       }
+    }
+    function undoRematch() {
+      if (!state.undoColors) return;
+      Object.assign(brand.colors, state.undoColors);
+      state.undoColors = null;
+      state.importMsg = 'Your previous colors are back.';
     }
 
     async function setCover(dataUrl) {
@@ -797,7 +802,7 @@ const app = createApp({
       extractFromCover();
     }
 
-    // ----- book kit save/load + persistence -----
+    // ----- persistence: everything auto-saves to localStorage -----
     const bookKit = () => ({
       version: 1, app: 'pinterest-studio-authors',
       book: { ...book }, colors: { ...brand.colors }, fonts: { ...brand.fonts }, style: brand.style,
@@ -818,27 +823,15 @@ const app = createApp({
       if (k.hooksText) state.hooksText = k.hooksText;
       if (k.avail) Object.assign(state.avail, k.avail);
     }
-    function saveKit() {
-      const slug = (book.title || 'book').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'book';
-      saveBlob(new Blob([JSON.stringify(bookKit(), null, 2)], { type: 'application/json' }), slug + '.bookkit.json');
-    }
-    function loadKit(e) {
-      const f = e.target.files[0];
-      if (!f) return;
-      const r = new FileReader();
-      r.onload = () => {
-        try { applyKit(JSON.parse(r.result)); state.importMsg = 'Book kit loaded.'; }
-        catch (err) { state.importMsg = 'Load failed: ' + err.message; }
-      };
-      r.readAsText(f);
-      e.target.value = '';
-    }
     function resetAll() {
       Object.assign(brand, defaultBrand());
       Object.assign(book, defaultBook());
+      if (DEFAULT_KIT) { try { applyKit(DEFAULT_KIT); } catch {} }
       state.importMsg = '';
       try { localStorage.removeItem('pinauthors.kit.v1'); } catch {}
     }
+    // Baked-in default setup (the owner's book) — applied before any saved work
+    if (DEFAULT_KIT) { try { applyKit(DEFAULT_KIT); } catch {} }
     try {
       const saved = localStorage.getItem('pinauthors.kit.v1');
       if (saved) applyKit(JSON.parse(saved));
@@ -890,8 +883,8 @@ const app = createApp({
       const img = new Image();
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
       await img.decode();
-      // Export at 2× for crisper pins (the SVG source is vector, so it scales sharply)
-      const SCALE = 2;
+      // Export at Pinterest's recommended size (1000×1500 / 1000×2100)
+      const SCALE = 1;
       const canvas = document.createElement('canvas');
       canvas.width = w * SCALE; canvas.height = h * SCALE;
       canvas.getContext('2d').drawImage(img, 0, 0, w * SCALE, h * SCALE);
@@ -922,7 +915,7 @@ const app = createApp({
       if (!el) return;
       const blob = await renderPin(el, extraCss);
       const slug = (book.title || 'book').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'book';
-      saveBlob(blob, slug + '-pin-' + id + '-' + el.dataset.name + '-' + (el.offsetWidth * 2) + 'x' + (el.offsetHeight * 2) + '.png');
+      saveBlob(blob, slug + '-pin-' + id + '-' + el.dataset.name + '-' + el.offsetWidth + 'x' + el.offsetHeight + '.png');
     }
 
     async function downloadOne(id) {
@@ -951,15 +944,198 @@ const app = createApp({
       importMsg: computed(() => state.importMsg),
       fontPairs: FONT_PAIRS, fontPairId, pinClass,
       hooks, pinVars, activePins,
-      fmt, onFile, setCover, extractFromCover,
-      downloadOne, downloadAll, saveKit, loadKit, resetAll,
+      fmt, quoteSize, onFile, setCover, extractFromCover,
+      undoRematch, canUndoRematch: computed(() => !!state.undoColors),
+      downloadOne, downloadAll, resetAll,
     };
   },
 });
 
+// ---- hardcover renderer ----
+// Draws the cover as a perspective-correct hardcover: warped front cover,
+// paper fore-edge with individual page lines, back board, hinge crease,
+// studio lighting and a soft ground shadow — all rasterised so the SVG
+// export (which flattens CSS 3D) shows exactly what the preview shows.
+const bookArtCache = new Map();
+
+async function renderBookArt(coverUrl, mode) {
+  const cacheKey = (mode || '3d') + '|' + coverUrl;
+  if (bookArtCache.has(cacheKey)) return bookArtCache.get(cacheKey);
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = coverUrl; });
+
+  if (mode === 'flat') {
+    // straight-on cover: just the artwork with a soft ground shadow and a
+    // whisper of studio light, so it still sits naturally on the pin
+    const cw = 1080, ch = Math.round(cw * img.naturalHeight / Math.max(1, img.naturalWidth));
+    const padX = 0.045 * cw, padT = 0.015 * ch;
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil(cw + 2 * padX);
+    cv.height = Math.ceil(padT + ch + 0.055 * ch);
+    const ctx = cv.getContext('2d');
+    ctx.save();
+    ctx.translate(cv.width / 2, padT + ch + 0.012 * ch);
+    ctx.filter = 'blur(' + Math.round(0.016 * cw) + 'px)';
+    ctx.fillStyle = 'rgba(15,12,10,0.45)';
+    ctx.beginPath(); ctx.ellipse(0, 0, cw * 0.52, ch * 0.022, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.drawImage(img, padX, padT, cw, ch);
+    let g = ctx.createLinearGradient(padX, padT, padX + cw, padT + ch * 0.5);
+    g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(0.65, 'rgba(255,255,255,0.07)');
+    g.addColorStop(0.82, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.fillRect(padX, padT, cw, ch);
+    g = ctx.createLinearGradient(0, padT, 0, padT + ch);
+    g.addColorStop(0, 'rgba(255,255,255,0.05)'); g.addColorStop(0.12, 'rgba(255,255,255,0)');
+    g.addColorStop(0.88, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.10)');
+    ctx.fillStyle = g; ctx.fillRect(padX, padT, cw, ch);
+    const url = cv.toDataURL('image/png');
+    bookArtCache.set(cacheKey, url);
+    return url;
+  }
+
+  const cw = 1080;                                       // internal cover width
+  const ch = Math.round(cw * img.naturalHeight / Math.max(1, img.naturalWidth));
+  const A = 28 * Math.PI / 180, sinA = Math.sin(A), cosA = Math.cos(A);
+  const f = 8 * cw;                                      // focal length — gentle perspective
+  const pd = 0.24 * cw;                                  // page-block depth
+  const bt = 0.016 * cw;                                 // board thickness
+  const ovh = 0.014 * ch;                                // board overhang over the pages
+  const cy = 0.46 * ch;                                  // vertical vanishing centre
+  const padL = 0.02 * cw, padT = 0.045 * ch;
+
+  // project a point at cover-x `x` (0..cw, spine to fore-edge) and depth `d`
+  // (0 = front cover plane, positive = toward the back cover)
+  const proj = (x, d) => {
+    const s = f / (f - (x * sinA - d * cosA));
+    return { x: padL + (x * cosA + d * sinA) * s, s };
+  };
+  const py = (yv, s) => padT + cy + (yv - cy) * s;
+
+  const outer = proj(cw, pd + bt);
+  const cv = document.createElement('canvas');
+  cv.width = Math.ceil(outer.x + 0.07 * cw);
+  cv.height = Math.ceil(padT + cy + (ch - cy) * proj(cw, 0).s + 0.075 * ch);
+  const ctx = cv.getContext('2d');
+
+  // average colour of the cover (for the back board and shadow tint)
+  const smp = document.createElement('canvas');
+  smp.width = smp.height = 12;
+  smp.getContext('2d').drawImage(img, 0, 0, 12, 12);
+  const sd = smp.getContext('2d').getImageData(0, 0, 12, 12).data;
+  let ar = 0, ag = 0, ab = 0;
+  for (let i = 0; i < sd.length; i += 4) { ar += sd[i]; ag += sd[i + 1]; ab += sd[i + 2]; }
+  const n = sd.length / 4;
+  const boardCol = (k) => `rgb(${Math.round(ar / n * k)},${Math.round(ag / n * k)},${Math.round(ab / n * k)})`;
+
+  // ---- ground shadow ----
+  const bl = py(ch, proj(0, 0).s), br = py(ch, proj(cw, 0).s);
+  ctx.save();
+  ctx.translate(padL + cw * 0.48, (bl + br) / 2 + 0.02 * ch);
+  ctx.rotate(Math.atan2(br - bl, proj(cw, 0).x - proj(0, 0).x));
+  ctx.filter = 'blur(' + Math.round(0.016 * cw) + 'px)';
+  ctx.fillStyle = 'rgba(15,12,10,0.50)';
+  ctx.beginPath(); ctx.ellipse(0, 0, cw * 0.55, ch * 0.026, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(15,12,10,0.45)';
+  ctx.beginPath(); ctx.ellipse(cw * 0.06, 0, cw * 0.38, ch * 0.016, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // quad at the fore-edge plane (x = cw) between depths d0..d1, heights y0..y1
+  const edgeQuad = (d0, d1, y0, y1) => {
+    const a = proj(cw, d0), b = proj(cw, d1);
+    ctx.beginPath();
+    ctx.moveTo(a.x, py(y0, a.s)); ctx.lineTo(b.x, py(y0, b.s));
+    ctx.lineTo(b.x, py(y1, b.s)); ctx.lineTo(a.x, py(y1, a.s));
+    ctx.closePath();
+  };
+
+  // ---- back board (slightly taller than the pages, like the front board) ----
+  edgeQuad(pd, pd + bt, 0, ch);
+  ctx.fillStyle = boardCol(0.32); ctx.fill();
+
+  // ---- page block ----
+  edgeQuad(bt, pd, ovh, ch - ovh);
+  ctx.fillStyle = '#F6F0E1'; ctx.fill();
+  ctx.save();
+  edgeQuad(bt, pd, ovh, ch - ovh); ctx.clip();
+  // individual sheets — slightly uneven spacing reads as real paper
+  const nl = 46;
+  for (let i = 1; i < nl; i++) {
+    const u = i / nl + 0.25 / nl * Math.sin(i * 12.9898);
+    const p = proj(cw, bt + u * (pd - bt));
+    ctx.strokeStyle = 'rgba(112,98,72,' + (0.16 + 0.22 * u).toFixed(3) + ')';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(p.x, py(ovh, p.s)); ctx.lineTo(p.x, py(ch - ovh, p.s)); ctx.stroke();
+  }
+  // shading: bright near the cover, falling into shadow toward the back
+  const pgA = proj(cw, bt), pgB = proj(cw, pd);
+  let g = ctx.createLinearGradient(pgA.x, 0, pgB.x, 0);
+  g.addColorStop(0, 'rgba(255,255,255,0.34)'); g.addColorStop(0.22, 'rgba(255,255,255,0)');
+  g.addColorStop(0.6, 'rgba(0,0,0,0.07)'); g.addColorStop(1, 'rgba(0,0,0,0.30)');
+  ctx.fillStyle = g; ctx.fillRect(pgA.x - 2, 0, pgB.x - pgA.x + 4, cv.height);
+  g = ctx.createLinearGradient(0, py(ovh, pgA.s), 0, py(ch - ovh, pgA.s));
+  g.addColorStop(0, 'rgba(0,0,0,0.20)'); g.addColorStop(0.07, 'rgba(0,0,0,0)');
+  g.addColorStop(0.93, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.26)');
+  ctx.fillStyle = g; ctx.fillRect(pgA.x - 2, 0, pgB.x - pgA.x + 4, cv.height);
+  ctx.restore();
+
+  // ---- front board edge (the wrapped cover lip in front of the pages) ----
+  edgeQuad(0, bt, 0, ch);
+  g = ctx.createLinearGradient(proj(cw, 0).x, 0, proj(cw, bt).x, 0);
+  g.addColorStop(0, '#F1EBDC'); g.addColorStop(1, '#CFC7B2');
+  ctx.fillStyle = g; ctx.fill();
+
+  // ---- front cover, warped strip by strip ----
+  const N = 120, iw = img.naturalWidth, ih = img.naturalHeight;
+  for (let i = 0; i < N; i++) {
+    const a = proj(i / N * cw, 0), b = proj((i + 1) / N * cw, 0);
+    ctx.drawImage(img, i / N * iw, 0, iw / N, ih,
+      a.x, py(0, a.s), b.x - a.x + (i < N - 1 ? 1.2 : 0), py(ch, a.s) - py(0, a.s));
+  }
+
+  // ---- lighting overlays, clipped to the cover ----
+  const cl = proj(0, 0), cr = proj(cw, 0);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cl.x, py(0, cl.s)); ctx.lineTo(cr.x, py(0, cr.s));
+  ctx.lineTo(cr.x, py(ch, cr.s)); ctx.lineTo(cl.x, py(ch, cl.s));
+  ctx.closePath(); ctx.clip();
+  // hinge crease by the spine
+  g = ctx.createLinearGradient(cl.x, 0, cr.x, 0);
+  g.addColorStop(0, 'rgba(0,0,0,0.34)'); g.addColorStop(0.028, 'rgba(0,0,0,0.16)');
+  g.addColorStop(0.052, 'rgba(255,255,255,0.15)'); g.addColorStop(0.082, 'rgba(0,0,0,0.12)');
+  g.addColorStop(0.13, 'rgba(0,0,0,0)');
+  g.addColorStop(0.86, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.20)'); // fore-edge falloff
+  ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+  // diagonal sheen
+  g = ctx.createLinearGradient(cl.x, 0, cr.x, ch * 0.55);
+  g.addColorStop(0.42, 'rgba(255,255,255,0)'); g.addColorStop(0.62, 'rgba(255,255,255,0.10)');
+  g.addColorStop(0.8, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+  // soft vertical ambient light
+  g = ctx.createLinearGradient(0, padT, 0, py(ch, cl.s));
+  g.addColorStop(0, 'rgba(255,255,255,0.07)'); g.addColorStop(0.15, 'rgba(255,255,255,0)');
+  g.addColorStop(0.85, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.11)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.restore();
+
+  const url = cv.toDataURL('image/png');
+  bookArtCache.set(cacheKey, url);
+  return url;
+}
+
 app.component('book-3d', {
   template: '#book3d-tpl',
-  props: ['cover', 'tilt'],
+  props: ['cover', 'tilt', 'mode'],
+  data: () => ({ src: '' }),
+  watch: {
+    cover: { immediate: true, handler() { this.update(); } },
+    mode() { this.update(); },
+  },
+  methods: {
+    async update() {
+      try { this.src = await renderBookArt(this.cover, this.mode); }
+      catch { this.src = this.cover; } // unreadable image — show it as-is
+    },
+  },
 });
 app.component('amazon-badge', {
   template: '#amazon-tpl',
