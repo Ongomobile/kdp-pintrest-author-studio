@@ -1,0 +1,3 @@
+[build]
+  command = "mkdir -p dist && node build/build.mjs dist/index.html"
+  publish = "dist"
