@@ -203,6 +203,36 @@
   .pin-frame { border: 1.5px solid var(--ui-ink); box-shadow: 3px 3px 0 var(--ui-ink); overflow: hidden; }
   .pin-scale { transform: scale(0.32); transform-origin: top left; }
   .empty-note { font-size: 15px; color: var(--ui-muted); font-weight: 600; padding: 40px; }
+
+  .copy-pack {
+    background: var(--ui-paper); border: 1.5px solid var(--ui-ink);
+    box-shadow: 3px 3px 0 var(--ui-ink); border-radius: 4px;
+    padding: 12px 14px 6px; font-size: 12.5px;
+  }
+  .cp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .cp-head .cp-tag {
+    background: var(--ui-gold); border: 1.5px solid var(--ui-ink);
+    font-weight: 800; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 8px; transform: rotate(-1deg);
+  }
+  .cp-head .spacer { flex: 1; }
+  .cp-row { margin-bottom: 10px; }
+  .cp-label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--ui-muted); margin-bottom: 3px;
+  }
+  .cp-label .count { font-weight: 600; text-transform: none; letter-spacing: 0; }
+  .cp-label .count.over { color: #B3261E; font-weight: 800; }
+  .cp-text { line-height: 1.45; color: var(--ui-ink); overflow-wrap: break-word; }
+  .cp-text.dim { color: var(--ui-muted); font-style: italic; }
+  .cp-copy {
+    border: 1px solid var(--ui-ink); background: var(--ui-canvas); border-radius: 3px;
+    font-size: 10px; font-weight: 800; font-family: 'Inter', sans-serif; color: var(--ui-ink);
+    padding: 2px 8px; cursor: pointer; margin-left: auto; white-space: nowrap;
+  }
+  .cp-copy:hover { background: var(--ui-gold); }
+  .cp-copy.done { background: var(--ui-gold); }
   .busy { position: fixed; inset: 0; background: rgba(34,29,24,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
   .busy div { background: var(--ui-paper); border: 1.5px solid var(--ui-ink); box-shadow: 4px 4px 0 var(--ui-ink); padding: 22px 34px; font-weight: 800; }
 </style>
@@ -216,6 +246,9 @@
       <div class="tag">Upload your cover. Download Pinterest-ready book pins.</div>
     </div>
     <div class="spacer"></div>
+    <button class="btn-sticker" style="background: var(--ui-gold); color: var(--ui-ink);" @click="copyAllPacks" :disabled="activePins.length === 0">
+      {{ copied === 'all' ? 'Copied ✓' : 'Copy all pin text' }}
+    </button>
     <button class="btn-sticker" @click="downloadAll" :disabled="exporting || activePins.length === 0">
       Download all ({{ activePins.length }}) →
     </button>
@@ -301,6 +334,32 @@
         </div>
         <label>Formats line <span class="hint">(shown under the badge)</span></label>
         <input type="text" v-model="avail.line">
+      </section>
+
+      <section>
+        <h2>Get found — Pinterest SEO</h2>
+        <p class="hint-p">Pinterest is a search engine for readers. These answers power the ready-to-paste title, description, alt text, and board name that appear under every pin.</p>
+        <label>Genre / shelf <span class="hint">(the shelf a reader would look on)</span></label>
+        <input type="text" v-model="seo.genre" placeholder='e.g. "small-town romance" or "cozy mystery"'>
+        <label>Book type</label>
+        <select v-model="seo.kind">
+          <option value="novel">Novel (fiction)</option>
+          <option value="book">Book (general)</option>
+          <option value="guide">Guide / how-to</option>
+          <option value="memoir">Memoir</option>
+          <option value="cookbook">Cookbook</option>
+          <option value="workbook">Workbook</option>
+          <option value="children's book">Children's book</option>
+          <option value="poetry collection">Poetry collection</option>
+        </select>
+        <label>Your ideal reader <span class="hint">(comp authors work great here)</span></label>
+        <input type="text" v-model="seo.audience" placeholder='e.g. "fans of Kristin Hannah and slow-burn romance"'>
+        <label>Primary search phrase <span class="hint">(what readers type — leave blank to use "&lt;genre&gt; books")</span></label>
+        <input type="text" v-model="seo.keyword" placeholder='e.g. "beach reads 2026"'>
+        <label>Supporting phrases <span class="hint">(optional, comma-separated — woven into descriptions)</span></label>
+        <input type="text" v-model="seo.keywords2" placeholder='e.g. "books to read this summer, TBR list"'>
+        <label>Destination link <span class="hint">(your Amazon page or book page — where a click should land)</span></label>
+        <input type="text" v-model="seo.link" placeholder="https://amazon.com/dp/…">
       </section>
 
       <section>
@@ -470,6 +529,26 @@
 
             </div>
           </div>
+
+          <div class="copy-pack" :style="{ width: p.w * 0.32 + 'px' }">
+            <div class="cp-head">
+              <span class="cp-tag">Pinterest copy</span>
+              <span class="spacer"></span>
+              <button class="cp-copy" :class="{ done: copied === p.id + ':all' }" @click="copyPack(p.id)">
+                {{ copied === p.id + ':all' ? 'Copied ✓' : 'Copy all' }}
+              </button>
+            </div>
+            <div class="cp-row" v-for="f in packFields" :key="f.key">
+              <div class="cp-label">
+                {{ f.label }}
+                <span v-if="f.max" class="count" :class="{ over: packOf(p)[f.key].length > f.max }">{{ packOf(p)[f.key].length }}/{{ f.max }}</span>
+                <button class="cp-copy" :class="{ done: copied === p.id + ':' + f.key }" @click="copyText(packOf(p)[f.key], p.id + ':' + f.key)">
+                  {{ copied === p.id + ':' + f.key ? '✓' : 'Copy' }}
+                </button>
+              </div>
+              <div class="cp-text" :class="{ dim: f.key === 'link' && !hasLink }">{{ packOf(p)[f.key] }}</div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -577,7 +656,7 @@ const app = createApp({
       hooksText: 'Small-town secrets & slow-burn romance\nA mystery 40 years in the making\nPerfect for fans of Kristin Hannah',
       avail: { amazon: true, line: 'Paperback · Kindle · Kindle Unlimited' },
       output: { templates: { a: true, b: true, c: true }, sizes: { std: true, tall: false } },
-      exporting: false,
+      exporting: false, copied: '',
       importMsg: '',
       undoColors: null, // palette snapshot from before the last "re-match colors"
       // "This is an example book" note — only for visitors with no saved work yet
@@ -585,6 +664,160 @@ const app = createApp({
     });
 
     const hooks = computed(() => state.hooksText.split('\n').map(s => s.trim()).filter(Boolean));
+
+    // ----- Pinterest SEO copy packs -----
+    // Generated locally from the form, following Pinterest's ranking rules:
+    // keyword-first title ≤100 chars, natural 2-3 sentence description ≤500
+    // chars, plain-words alt text, and a keyword-rich board name. Each pin
+    // design gets its own angle (announcement / review / next-read) so the
+    // three pins don't read as duplicates.
+    const SEO_DEFAULTS = {
+      genre: 'small-town coastal mystery',
+      kind: 'novel',
+      audience: 'fans of Kristin Hannah and slow-burn romance',
+      keyword: '',
+      keywords2: '',
+      link: '',
+    };
+    const seo = reactive({ ...SEO_DEFAULTS });
+
+    const SMALL_WORDS = new Set(['a','an','the','and','or','for','of','to','in','on','at','by','with','from','vs','your','my']);
+    const flatTxt = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const tc = (s) => flatTxt(s).split(' ').map((w, i) =>
+      (i > 0 && SMALL_WORDS.has(w.toLowerCase())) ? w.toLowerCase() : (w.charAt(0).toUpperCase() + w.slice(1))
+    ).join(' ');
+    const sentence = (s) => { s = flatTxt(s); return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; };
+    const endStop = (s) => (!s || /[.!?…"”]$/.test(s)) ? s : s + '.';
+    const noArrow = (s) => flatTxt(s).replace(/\s*(→|›|»|>)\s*$/, '');
+    const firstClause = (s) => (flatTxt(s).split(/(?<=[.!?])\s|,| — |—/)[0] || '').trim().replace(/[.!?]+$/, '');
+    const firstSentence = (s) => (flatTxt(s).split(/(?<=[.!?])\s/)[0] || '').trim();
+    const lcSmart = (s) => /^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+    // For prose use: turn headline line-breaks into a dash and calm all-caps shouting
+    const deShout = (s) => {
+      s = flatTxt(String(s || '').replace(/\s*\n+\s*/g, ' — '));
+      return (s === s.toUpperCase() && /[A-Z]/.test(s)) ? s.charAt(0) + s.slice(1).toLowerCase() : s;
+    };
+    const clipWords = (s, max) => {
+      s = flatTxt(s);
+      if (s.length <= max) return s;
+      let cut = s.slice(0, max + 1);
+      cut = cut.slice(0, cut.lastIndexOf(' '));
+      return cut.replace(/[\s,:;·—–-]+$/, '');
+    };
+    const hostOf = (u) => {
+      try { return new URL(/^https?:/i.test(u) ? u : 'https://' + u).hostname.replace(/^www\./, ''); }
+      catch { return flatTxt(u); }
+    };
+
+    // "ELENA MARSH" (styled caps on the pin) -> "Elena Marsh" for copy
+    const authorName = computed(() => {
+      const s = flatTxt(book.author);
+      return s === s.toUpperCase() ? tc(s.toLowerCase()) : s;
+    });
+    const genreTxt = computed(() => flatTxt(seo.genre).toLowerCase().replace(/\s+(books?|novels?|reads?)$/i, ''));
+    const primaryKw = computed(() => flatTxt(seo.keyword) || (genreTxt.value ? genreTxt.value + ' books' : 'books to read'));
+    const destination = computed(() => {
+      const l = flatTxt(seo.link);
+      return l ? (/^https?:/i.test(l) ? l : 'https://' + l) : '';
+    });
+    const hasLink = computed(() => !!destination.value);
+
+    const packs = computed(() => {
+      const title = flatTxt(book.title);
+      const author = authorName.value;
+      const genre = genreTxt.value;
+      const genreT = tc(genre);
+      const p = primaryKw.value, pt = tc(p);
+      const reader = lcSmart(firstClause(seo.audience));
+      const kws = flatTxt(seo.keywords2).split(',').map(s => s.trim()).filter(Boolean);
+      const items = hooks.value.map(s => s.replace(/[.]+$/, ''));
+      const hookList = (n) => items.slice(0, n).map((s, i) => i === 0 ? lcSmart(s) : lcSmart(s)).join(', ');
+      const amazon = !!state.avail.amazon;
+      const link = destination.value;
+      const linkHost = link ? hostOf(link) : '';
+      const linkLine = link || '⚠ Set the destination link (your Amazon or book page) in the sidebar — a pin without a link sends nobody anywhere.';
+      const alsoLine = kws.length ? ` Also great if you're searching for ${kws.slice(0, 2).join(' or ')}.` : '';
+      const mockupWords = book.mockup === '3d' ? 'a 3D hardcover mockup of the book' : 'the book cover';
+
+      const mk = (t, description, alt, board) => ({
+        title: clipWords(t, 100),
+        description: clipWords(flatTxt(description), 500),
+        alt: flatTxt(alt),
+        board: clipWords(board, 50),
+        link: linkLine,
+      });
+
+      const kind = flatTxt(seo.kind) || 'book';
+      const isNovel = kind === 'novel';
+
+      // A — spotlight pin: new-release announcement
+      const packA = mk(
+        `${title} by ${author} — New ${genre ? genreT + ' ' : ''}${tc(kind)}`,
+        `${endStop(sentence(`${title} is the new ${genre ? genre + ' ' : ''}${kind} from ${author}`))} ${endStop(firstSentence(a.blurb))}` +
+        (reader ? ` ${endStop(sentence(`perfect for ${reader}`))}` : '') + alsoLine +
+        (amazon ? ` Save this pin, then find it on Amazon${linkHost && linkHost !== 'amazon.com' ? ' or at ' + linkHost : ''}.`
+                : (linkHost ? ` Save this pin, then get your copy at ${linkHost}.` : ' Save this pin for your next bookstore trip.')),
+        `Pinterest pin announcing ${title}, a ${genre ? genre + ' ' : ''}${kind} by ${author}, showing ${mockupWords}${amazon ? ' with an Available on Amazon badge' : ''} and a button reading "${noArrow(a.cta)}".`,
+        genre ? clipWords(`New ${genreT} Books`, 50) : 'New Book Releases'
+      );
+
+      // B — quote pin: review spotlight. If the user set an explicit search
+      // phrase it leads; otherwise the genre-books phrase does.
+      const packB = mk(
+        flatTxt(seo.keyword)
+          ? `${pt}: ${title} by ${author} (${b.stars}-Star Reviews)`
+          : `${tc(genre ? genre + ' books' : 'books')} Worth Reading: ${title} (${b.stars}-Star Reviews)`,
+        `"${flatTxt(b.quote)}" — ${flatTxt(b.attribution)}. ${endStop(sentence(`if you're looking for ${p}, ${title} by ${author} belongs on your reading list`))}` +
+        (amazon ? ` Get your copy on Amazon.` : (linkHost ? ` Get your copy at ${linkHost}.` : ' Save this pin so it makes your next reading list.')),
+        `Dark Pinterest pin with a ${b.stars}-star review of ${title} by ${author}: "${clipWords(b.quote, 90)}${flatTxt(b.quote).length > 90 ? '…' : ''}" — ${flatTxt(b.attribution)}, above ${mockupWords}.`,
+        'Books Worth Reading'
+      );
+
+      // C — reader pin: "your next read" hook (nonfiction leads with the search phrase)
+      const packC = mk(
+        `${isNovel && genre ? 'Your Next ' + genreT + ' Read' : tc(p)}: ${title} by ${author}`,
+        `${endStop(sentence(deShout(c.headline)))}` +
+        (items.length ? ` ${endStop(sentence(`${title} has it all: ${hookList(3)}`))}` : ` ${endStop(sentence(`meet ${title} by ${author}`))}`) +
+        (reader ? ` ${endStop(sentence(`a must-read for ${reader}`))}` : '') + alsoLine +
+        ` Save it to your reading list${amazon ? ' — available on Amazon' : ''}.`,
+        `Pinterest pin with the headline "${flatTxt(c.headline)}" above the tilted cover of ${title} by ${author}, a corner label reading "${flatTxt(c.corner)}", and reasons to read it: ${items.slice(0, 2).join('; ')}.`,
+        genre ? clipWords(`${genreT} Books to Read`, 50) : 'Books to Read Next'
+      );
+
+      return { a: packA, b: packB, c: packC };
+    });
+
+    const packFields = [
+      { key: 'title', label: 'Pin title', max: 100 },
+      { key: 'description', label: 'Description', max: 500 },
+      { key: 'alt', label: 'Alt text', max: 0 },
+      { key: 'board', label: 'Board', max: 0 },
+      { key: 'link', label: 'Destination link', max: 0 },
+    ];
+    const packOf = (p) => packs.value[p.id.slice(1)];
+
+    let copyTimer = null;
+    async function copyText(text, key) {
+      try { await navigator.clipboard.writeText(text); }
+      catch {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      state.copied = key;
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => { state.copied = ''; }, 1600);
+    }
+    const PACK_NAMES = { a: 'SPOTLIGHT PIN (A)', b: 'QUOTE PIN (B)', c: 'READER PIN (C)' };
+    function packText(t) {
+      const k = packs.value[t];
+      return `Title: ${k.title}\nDescription: ${k.description}\nAlt text: ${k.alt}\nBoard: ${k.board}\nLink: ${k.link}`;
+    }
+    function copyPack(id) { copyText(packText(id.slice(1)), id + ':all'); }
+    function copyAllPacks() {
+      const ts = [...new Set(activePins.value.map(p => p.id.slice(1)))];
+      copyText(ts.map(t => `=== ${PACK_NAMES[t]} ===\n${packText(t)}`).join('\n\n'), 'all');
+    }
 
     // ----- style presets: each is a bundle of motif variables -----
     function rgbaOf(hex, a) {
@@ -827,6 +1060,7 @@ const app = createApp({
       book: { ...book }, colors: { ...brand.colors }, fonts: { ...brand.fonts }, style: brand.style,
       a: { ...a }, b: { ...b }, c: { ...c },
       hooksText: state.hooksText, avail: { ...state.avail },
+      seo: { ...seo },
     });
     function applyKit(k) {
       if (!k || k.version !== 1 || !k.colors || !k.book) throw new Error('not a Pinterest Studio for Authors book kit');
@@ -841,12 +1075,14 @@ const app = createApp({
       if (k.c) Object.assign(c, k.c);
       if (k.hooksText) state.hooksText = k.hooksText;
       if (k.avail) Object.assign(state.avail, k.avail);
+      if (k.seo) Object.assign(seo, k.seo);
     }
     let resetting = false; // lets the kit watcher ignore resetAll's own mutations
     function resetAll() {
       resetting = true;
       Object.assign(brand, defaultBrand());
       Object.assign(book, defaultBook());
+      Object.assign(seo, SEO_DEFAULTS);
       if (DEFAULT_KIT) { try { applyKit(DEFAULT_KIT); } catch {} }
       state.importMsg = '';
       state.showExampleNote = true; // reset restores the example content
@@ -969,6 +1205,9 @@ const app = createApp({
       showExampleNote: rw('showExampleNote'),
       fontPairs: FONT_PAIRS, fontPairId, pinClass,
       hooks, pinVars, activePins,
+      seo, packFields, packOf, hasLink,
+      copied: computed(() => state.copied),
+      copyText, copyPack, copyAllPacks,
       fmt, quoteSize, onFile, setCover, extractFromCover,
       undoRematch, canUndoRematch: computed(() => !!state.undoColors),
       downloadOne, downloadAll, resetAll,

@@ -9,7 +9,10 @@ A single-file web app for authors: upload a cover and it becomes a realistic 3D 
 1. Open `pinterest-studio-authors.html` in any modern browser (double-click it).
 2. Upload your book cover — the pin palette is extracted from it automatically (adjust any swatch afterward).
 3. Fill in your book title, author name, marketing blurb, review quote, and reader hooks.
-4. Download individual pins with **PNG ↓**, or grab everything with **Download all**.
+4. Fill in the **Get found — Pinterest SEO** section (genre/shelf, book type, ideal reader, search phrase, and the destination link — usually your Amazon page).
+5. Download individual pins with **PNG ↓**, or grab everything with **Download all**.
+
+Under every pin preview you'll find its **Pinterest copy** pack — a keyword-first pin title (≤100 chars), a natural 2-3 sentence description, alt text, a board name, and the destination link, each with a one-click **Copy** button. Each pin design gets its own angle (announcement / review / next-read) so the three pins don't read as duplicates. **Copy all pin text** in the header grabs everything at once.
 
 ### The three pin designs
 
