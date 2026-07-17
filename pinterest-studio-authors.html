@@ -216,6 +216,7 @@
   }
   aside textarea { resize: vertical; }
   .btn-row { display: flex; gap: 8px; align-items: center; margin: 4px 0 6px; flex-wrap: wrap; }
+  .btn-row .hint { font-size: 12px; color: var(--ui-muted); }
   .btn-ghost { background: var(--ui-paper); color: var(--ui-ink); }
   .import-msg { font-size: 12px; font-weight: 600; color: var(--ui-muted); margin-top: 6px; }
   .example-note {
@@ -280,12 +281,13 @@
     <aside>
       <div class="example-note" v-if="showExampleNote">
         <button class="example-note-close" @click="showExampleNote = false" title="Dismiss">×</button>
-        <b>This is an example book.</b> Everything you see is sample content — replace it with your own book below. Your changes save automatically in this browser.
+        <b>This is an example book.</b> Everything you see is sample content. Replace it with your own book below, and your changes save automatically in this browser.
       </div>
       <section>
         <h2>Your book</h2>
         <div class="btn-row">
-          <button class="btn-sticker btn-small btn-ghost" @click="resetAll">Reset</button>
+          <button class="btn-sticker btn-small btn-ghost" @click="resetAll">Reset to example</button>
+          <span class="hint">clears everything you entered</span>
         </div>
 
         <label>Book cover <span class="hint">(pin colors are matched to it automatically)</span></label>
