@@ -162,6 +162,17 @@
   .btn-row { display: flex; gap: 8px; align-items: center; margin: 4px 0 6px; flex-wrap: wrap; }
   .btn-ghost { background: var(--ui-paper); color: var(--ui-ink); }
   .import-msg { font-size: 12px; font-weight: 600; color: var(--ui-muted); margin-top: 6px; }
+  .example-note {
+    position: relative; font-size: 13px; line-height: 1.5;
+    background: var(--ui-paper); border: 1.5px solid var(--ui-ink); border-left: 6px solid var(--ui-gold);
+    border-radius: 4px; padding: 10px 32px 10px 12px; margin-bottom: 18px;
+  }
+  .example-note-close {
+    position: absolute; top: 3px; right: 4px; border: 0; background: none;
+    font-size: 18px; line-height: 1; font-weight: 700; color: var(--ui-muted);
+    cursor: pointer; padding: 4px;
+  }
+  .example-note-close:hover { color: var(--ui-ink); }
   .color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
   .color-grid .swatch { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
   .color-grid input[type="color"] {
@@ -211,6 +222,10 @@
 
   <div class="layout">
     <aside>
+      <div class="example-note" v-if="showExampleNote">
+        <button class="example-note-close" @click="showExampleNote = false" title="Dismiss">×</button>
+        <b>This is an example book.</b> Everything you see is sample content — replace it with your own book below. Your changes save automatically in this browser.
+      </div>
       <section>
         <h2>Your book</h2>
         <div class="btn-row">
@@ -563,6 +578,8 @@ const app = createApp({
       exporting: false,
       importMsg: '',
       undoColors: null, // palette snapshot from before the last "re-match colors"
+      // "This is an example book" note — only for visitors with no saved work yet
+      showExampleNote: (() => { try { return !localStorage.getItem('pinauthors.kit.v1'); } catch { return true; } })(),
     });
 
     const hooks = computed(() => state.hooksText.split('\n').map(s => s.trim()).filter(Boolean));
@@ -823,11 +840,14 @@ const app = createApp({
       if (k.hooksText) state.hooksText = k.hooksText;
       if (k.avail) Object.assign(state.avail, k.avail);
     }
+    let resetting = false; // lets the kit watcher ignore resetAll's own mutations
     function resetAll() {
+      resetting = true;
       Object.assign(brand, defaultBrand());
       Object.assign(book, defaultBook());
       if (DEFAULT_KIT) { try { applyKit(DEFAULT_KIT); } catch {} }
       state.importMsg = '';
+      state.showExampleNote = true; // reset restores the example content
       try { localStorage.removeItem('pinauthors.kit.v1'); } catch {}
     }
     // Baked-in default setup (the owner's book) — applied before any saved work
@@ -837,6 +857,8 @@ const app = createApp({
       if (saved) applyKit(JSON.parse(saved));
     } catch {}
     watch(bookKit, () => {
+      if (resetting) { resetting = false; try { localStorage.removeItem('pinauthors.kit.v1'); } catch {} return; }
+      state.showExampleNote = false; // first edit — it's their book now
       const kit = bookKit();
       try { localStorage.setItem('pinauthors.kit.v1', JSON.stringify(kit)); }
       catch { // cover too large for localStorage — persist everything else
@@ -942,6 +964,7 @@ const app = createApp({
       avail: state.avail, output: state.output,
       exporting: computed(() => state.exporting),
       importMsg: computed(() => state.importMsg),
+      showExampleNote: rw('showExampleNote'),
       fontPairs: FONT_PAIRS, fontPairId, pinClass,
       hooks, pinVars, activePins,
       fmt, quoteSize, onFile, setCover, extractFromCover,
