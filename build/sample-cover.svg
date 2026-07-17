@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E2A3C"/>
+      <stop offset="0.55" stop-color="#1D4E63"/>
+      <stop offset="1" stop-color="#3E7A88"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FDF6E3"/>
+      <stop offset="0.7" stop-color="#F4E6C1"/>
+      <stop offset="1" stop-color="#F4E6C100"/>
+    </radialGradient>
+  </defs>
+  <rect width="600" height="900" fill="url(#sky)"/>
+  <circle cx="440" cy="250" r="90" fill="url(#moon)" opacity="0.9"/>
+  <circle cx="440" cy="250" r="52" fill="#FBF1D8"/>
+  <!-- sea -->
+  <rect y="640" width="600" height="260" fill="#0B2230"/>
+  <path d="M0 640 Q 150 628 300 640 T 600 640 V 900 H 0 Z" fill="#123449"/>
+  <g stroke="#F4E6C1" stroke-width="3" opacity="0.35">
+    <path d="M60 700 h90 M200 730 h60 M380 710 h110 M120 780 h70 M300 800 h90 M450 840 h80" />
+  </g>
+  <!-- lighthouse -->
+  <g>
+    <path d="M270 640 L282 380 h36 L330 640 Z" fill="#E8E0CE"/>
+    <path d="M270 640 L282 380 h18 L300 640 Z" fill="#C9BFa8" opacity="0.6"/>
+    <g fill="#8A2F2B">
+      <path d="M279.5 430 h41 l2.5 40 h-46 Z"/>
+      <path d="M275 520 h50 l2.5 40 h-55 Z"/>
+      <path d="M271 610 h58 l1.5 30 h-61 Z"/>
+    </g>
+    <rect x="276" y="352" width="48" height="30" rx="4" fill="#2B2118"/>
+    <rect x="284" y="356" width="32" height="20" fill="#FFD97A"/>
+    <path d="M284 366 L120 320 L120 412 Z" fill="#FFD97A" opacity="0.28"/>
+    <path d="M316 366 L520 330 L520 402 Z" fill="#FFD97A" opacity="0.28"/>
+    <path d="M272 352 h56 l-8 -18 h-40 Z" fill="#3A2C1E"/>
+  </g>
+  <!-- title -->
+  <text x="300" y="120" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="30" letter-spacing="10" fill="#F4E6C1">A NOVEL</text>
+  <text x="300" y="195" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="bold" fill="#FDF6E3">THE MIDNIGHT</text>
+  <text x="300" y="265" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="bold" fill="#FDF6E3">LIGHTHOUSE</text>
+  <rect x="230" y="292" width="140" height="3" fill="#FFD97A"/>
+  <text x="300" y="856" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="34" letter-spacing="6" fill="#FDF6E3">ELENA MARSH</text>
+</svg>

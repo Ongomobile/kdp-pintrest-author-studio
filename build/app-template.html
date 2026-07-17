@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinterest Studio for Authors — book pins from a form</title>
+
+<!-- Embedded fonts (also injected into the SVG at export time) -->
+<style id="font-styles">
+/*__FONTS_CSS__*/
+</style>
+
+<!-- Pin styles — everything inside this block ships into the exported PNG.
+     Motifs (shadows, borders, radii, rotation, texture) come from CSS variables
+     set per style preset in JS, so any book genre works. -->
+<style id="pin-styles">
+  .pin, .pin * { margin: 0; padding: 0; box-sizing: border-box; }
+  .pin {
+    width: 1000px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column; flex-shrink: 0;
+    font-family: var(--font-body, 'Inter'), sans-serif; color: var(--ink);
+  }
+  .pin.std  { height: 1500px; }
+  .pin.tall { height: 2100px; }
+  .pin.light { background-color: var(--canvas); }
+  .pin.light.textured { background-image: url("__PAPER_DATA__"); }
+  .pin.dark  { background-color: var(--board); color: var(--cream); }
+
+  .pin ul { list-style: none; }
+  .pin img { display: block; }
+
+  .tape-badge {
+    display: inline-block; background: var(--gold); color: var(--ink);
+    font-weight: 800; letter-spacing: 0.14em;
+    box-shadow: var(--badge-shadow); border-radius: var(--badge-radius, 0);
+    transform: rotate(var(--badge-rotate, -2deg));
+  }
+  .headline {
+    font-family: var(--font-display, 'Inter'), serif;
+    font-weight: 900; letter-spacing: var(--display-tracking, -0.02em); line-height: 1.06;
+  }
+  .headline .pop { color: var(--accent); }
+  .subhead { font-weight: 600; color: var(--muted); line-height: 1.45; }
+  .pin.dark .subhead { color: var(--cream); opacity: 0.9; }
+
+  .cta-btn {
+    background: var(--accent); color: var(--canvas);
+    border: var(--btn-border); box-shadow: var(--el-shadow);
+    font-weight: 800; text-align: center; border-radius: var(--btn-radius, 10px);
+  }
+  .pin.dark .cta-btn { box-shadow: var(--el-shadow-dark, var(--el-shadow)); }
+
+  .brand-footer {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    font-weight: 700; font-size: 32px;
+  }
+  .brand-footer .rule { width: 70px; height: 2px; background: currentColor; opacity: 0.35; }
+  .byline { font-family: var(--font-display, 'Inter'), serif; font-weight: 700; letter-spacing: 0.16em; }
+
+  .hook-list { display: flex; flex-direction: column; gap: 32px; }
+  .hook-list li { display: flex; align-items: flex-start; gap: 24px; font-weight: 600; font-size: 37px; line-height: 1.3; text-align: left; }
+  .hook-list .check {
+    width: 54px; height: 54px; border-radius: 50%; background: var(--accent);
+    color: var(--canvas); display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 900; flex-shrink: 0; margin-top: 2px;
+  }
+  .pin.dark .hook-list .check { color: var(--board); }
+
+  .mono-url { font-family: 'JetBrains Mono', monospace; font-size: 28px; letter-spacing: 0.08em; opacity: 0.75; text-align: center; }
+
+  .stars { color: #F5A623; font-size: 58px; letter-spacing: 0.18em; line-height: 1; }
+  .quote-mark { font-family: Georgia, serif; font-size: 200px; line-height: 0.5; height: 80px; opacity: 0.25; }
+  .quote-text {
+    font-family: var(--font-display, 'Inter'), serif; font-weight: 700; font-style: italic;
+    line-height: 1.28; letter-spacing: -0.01em;
+  }
+  .quote-attr { font-weight: 600; font-size: 32px; opacity: 0.75; letter-spacing: 0.06em; }
+
+  /* ---- Amazon availability badge ---- */
+  .amazon-badge {
+    display: inline-flex; align-items: baseline; gap: 18px;
+    background: #232F3E; color: #FFFFFF;
+    border-radius: 16px; padding: 22px 44px 26px;
+    box-shadow: var(--el-shadow);
+  }
+  .amazon-badge .avail { font-size: 27px; font-weight: 600; opacity: 0.85; font-family: 'Inter', sans-serif; }
+  .amazon-badge .amz {
+    font-family: 'Inter', sans-serif; font-weight: 800; font-size: 44px;
+    letter-spacing: -0.03em; line-height: 1; position: relative; padding-bottom: 14px;
+  }
+  .amazon-badge .amz svg { position: absolute; left: 2px; bottom: 0; width: 92%; height: 16px; }
+  .avail-line { font-size: 27px; font-weight: 600; opacity: 0.7; letter-spacing: 0.04em; }
+  .amazon-badge.small { padding: 17px 36px 21px; gap: 14px; border-radius: 13px; }
+  .amazon-badge.small .avail { font-size: 23px; }
+  .amazon-badge.small .amz { font-size: 37px; padding-bottom: 12px; }
+  .amazon-badge.small .amz svg { height: 13px; }
+
+  /* ---- 3D book mockup ----
+     One wrapper carries a single perspective transform (exports reliably through
+     SVG foreignObject); the page block is layered box-shadows that rotate with it. */
+  .book3d { position: relative; }
+  .book3d-body {
+    position: relative;
+    transform: perspective(2600px) rotateY(-24deg);
+    transform-origin: left center;
+    border-radius: 4px 14px 14px 4px;
+    background: #fff;
+    box-shadow:
+      4px 3px 0 -1px #FBF8F1, 5px 4px 0 0 #DED8C9,
+      10px 7px 0 -1px #FBF8F1, 11px 8px 0 0 #DED8C9,
+      16px 11px 0 -1px #FBF8F1, 17px 12px 0 0 #D6CFBE,
+      22px 15px 0 -1px #FBF8F1, 23px 16px 0 0 #CEC6B2,
+      44px 34px 70px rgba(0,0,0,0.38);
+  }
+  .book3d-body img { width: 100%; height: auto; border-radius: inherit; }
+  .book3d-crease {
+    position: absolute; inset: 0; border-radius: inherit;
+    background: linear-gradient(90deg,
+      rgba(0,0,0,0.30) 0%, rgba(255,255,255,0.20) 2.6%,
+      rgba(0,0,0,0.16) 5.2%, rgba(0,0,0,0) 10%);
+  }
+  .book3d-sheen {
+    position: absolute; inset: 0; border-radius: inherit;
+    background: linear-gradient(100deg,
+      rgba(255,255,255,0) 55%, rgba(255,255,255,0.10) 74%,
+      rgba(255,255,255,0) 90%);
+  }
+  .book3d-shadow {
+    position: absolute; left: -2%; right: -10%; bottom: -5%; height: 9%;
+    background: radial-gradient(ellipse at 45% 50%, rgba(0,0,0,0.42), rgba(0,0,0,0) 68%);
+    filter: blur(10px);
+  }
+  .book3d.tilt { transform: rotate(var(--tilt, -1.5deg)); }
+</style>
+
+<!-- App UI styles (never exported) -->
+<style>
+  :root {
+    --ui-canvas: #F6F1E7; --ui-warm: #EFE7D6; --ui-paper: #FBF7ED;
+    --ui-ink: #221D18; --ui-muted: #4A423A; --ui-accent: #9A4B33;
+    --ui-gold: #D9A441; --ui-board: #211B15;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--ui-canvas); color: var(--ui-ink); font-family: 'Inter', sans-serif; }
+
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 14px 24px;
+    background: var(--ui-canvas); border-bottom: 1.5px solid var(--ui-ink);
+    position: sticky; top: 0; z-index: 50;
+  }
+  header img { width: 42px; height: 42px; border-radius: 50%; }
+  header h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.025em; }
+  header .tag { font-size: 13px; color: var(--ui-muted); font-weight: 600; margin-top: 2px; }
+  header .spacer { flex: 1; }
+
+  .btn-sticker {
+    background: var(--ui-accent); color: #fff; border: 1.5px solid var(--ui-ink);
+    box-shadow: 3px 3px 0 var(--ui-ink); border-radius: 4px;
+    font-weight: 800; font-size: 15px; font-family: 'Inter', sans-serif;
+    padding: 10px 18px; cursor: pointer;
+  }
+  .btn-sticker:hover { box-shadow: 4px 4px 0 var(--ui-ink); }
+  .btn-sticker:active { box-shadow: 1px 1px 0 var(--ui-ink); transform: translate(2px, 2px); }
+  .btn-sticker:disabled { opacity: 0.5; cursor: default; }
+  .btn-small { font-size: 13px; padding: 7px 12px; }
+
+  .layout { display: flex; align-items: flex-start; }
+
+  aside {
+    width: 400px; flex-shrink: 0; padding: 20px 24px 60px;
+    height: calc(100vh - 72px); overflow-y: auto;
+    background: var(--ui-warm); border-right: 1.5px solid var(--ui-ink);
+    position: sticky; top: 72px;
+  }
+  aside section { margin-bottom: 26px; }
+  aside h2 {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--ui-gold); display: inline-block; padding: 4px 12px;
+    transform: rotate(-1deg); margin-bottom: 14px;
+  }
+  aside label { display: block; font-size: 13px; font-weight: 700; margin: 12px 0 5px; }
+  aside label .hint { font-weight: 400; color: var(--ui-muted); }
+  aside input[type="text"], aside textarea, aside select {
+    width: 100%; font-family: 'Inter', sans-serif; font-size: 14px;
+    padding: 9px 11px; border: 1.5px solid var(--ui-ink); border-radius: 4px;
+    background: var(--ui-paper); color: var(--ui-ink);
+  }
+  aside textarea { resize: vertical; }
+  .btn-row { display: flex; gap: 8px; align-items: center; margin: 4px 0 6px; flex-wrap: wrap; }
+  .btn-ghost { background: var(--ui-paper); color: var(--ui-ink); }
+  .import-msg { font-size: 12px; font-weight: 600; color: var(--ui-muted); margin-top: 6px; }
+  .color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .color-grid .swatch { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .color-grid input[type="color"] {
+    width: 34px; height: 28px; border: 1.5px solid var(--ui-ink); border-radius: 4px;
+    padding: 1px; background: var(--ui-paper); cursor: pointer;
+  }
+  .check-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+  .check-row label { display: flex; align-items: center; gap: 6px; font-size: 14px; margin: 4px 0; cursor: pointer; }
+  .check-row input { accent-color: var(--ui-accent); width: 16px; height: 16px; }
+  .file-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .file-row img.cover-thumb { width: 44px; height: 62px; border-radius: 3px; border: 1.5px solid var(--ui-ink); object-fit: cover; background: var(--ui-paper); }
+  .file-row input { font-size: 12px; width: 100%; }
+  details.pub { margin-top: 30px; border-top: 1px solid var(--ui-gold); padding-top: 16px; }
+  details.pub summary { font-weight: 800; font-size: 14px; cursor: pointer; }
+  details.pub ol { margin: 10px 0 0 18px; font-size: 13px; line-height: 1.7; color: var(--ui-muted); }
+  .hint-p { font-size: 12px; color: var(--ui-muted); margin: 10px 0 8px; line-height: 1.5; }
+
+  main { flex: 1; padding: 28px; }
+  .pin-grid { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+  .preview-slot { display: flex; flex-direction: column; gap: 10px; }
+  .slot-head { display: flex; align-items: center; gap: 10px; }
+  .slot-label {
+    background: var(--ui-gold); border: 1.5px solid var(--ui-ink);
+    font-weight: 800; font-size: 14px; padding: 3px 10px;
+  }
+  .slot-name { font-size: 13px; color: var(--ui-muted); font-weight: 600; flex: 1; }
+  .pin-frame { border: 1.5px solid var(--ui-ink); box-shadow: 3px 3px 0 var(--ui-ink); overflow: hidden; }
+  .pin-scale { transform: scale(0.32); transform-origin: top left; }
+  .empty-note { font-size: 15px; color: var(--ui-muted); font-weight: 600; padding: 40px; }
+  .busy { position: fixed; inset: 0; background: rgba(34,29,24,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .busy div { background: var(--ui-paper); border: 1.5px solid var(--ui-ink); box-shadow: 4px 4px 0 var(--ui-ink); padding: 22px 34px; font-weight: 800; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <img :src="LOGO" alt="logo">
+    <div>
+      <h1>Pinterest Studio for Authors</h1>
+      <div class="tag">Upload your cover. Download Pinterest-ready book pins.</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn-sticker" @click="downloadAll" :disabled="exporting || activePins.length === 0">
+      Download all ({{ activePins.length }}) →
+    </button>
+  </header>
+
+  <div class="layout">
+    <aside>
+      <section>
+        <h2>Your book</h2>
+        <div class="btn-row">
+          <button class="btn-sticker btn-small" @click="$refs.kitFile.click()">Load book kit</button>
+          <button class="btn-sticker btn-small" @click="saveKit">Save book kit</button>
+          <button class="btn-sticker btn-small btn-ghost" @click="resetAll">Reset</button>
+          <input type="file" ref="kitFile" accept=".json,application/json" style="display:none" @change="loadKit">
+        </div>
+
+        <label>Book cover <span class="hint">(pin colors are matched to it automatically)</span></label>
+        <div class="file-row">
+          <img class="cover-thumb" :src="book.cover" alt="">
+          <input type="file" accept="image/*" @change="onFile($event, setCover)">
+        </div>
+        <div class="import-msg" v-if="importMsg">{{ importMsg }}</div>
+
+        <label>Book title <span class="hint">(line breaks kept)</span></label>
+        <textarea rows="2" v-model="book.title"></textarea>
+        <label>Highlight word <span class="hint">(word in the title shown in your accent color)</span></label>
+        <input type="text" v-model="book.highlight">
+        <label>Author name</label>
+        <input type="text" v-model="book.author">
+        <label>Website <span class="hint">(shown on the quote pin)</span></label>
+        <input type="text" v-model="book.url">
+      </section>
+
+      <section>
+        <h2>Spotlight pin (A) — new release</h2>
+        <label>Badge <span class="hint">(small label at the top, e.g. NEW RELEASE)</span></label>
+        <input type="text" v-model="a.badge">
+        <label>Marketing blurb</label>
+        <textarea rows="3" v-model="a.blurb"></textarea>
+        <label>Button text</label>
+        <input type="text" v-model="a.cta">
+      </section>
+
+      <section>
+        <h2>Quote pin (B) — review spotlight</h2>
+        <label>Review quote <span class="hint">(no quotation marks needed)</span></label>
+        <textarea rows="3" v-model="b.quote"></textarea>
+        <label>Attribution <span class="hint">(who said it)</span></label>
+        <input type="text" v-model="b.attribution">
+        <label>Star rating</label>
+        <select v-model.number="b.stars">
+          <option :value="5">★★★★★ — 5 stars</option>
+          <option :value="4">★★★★ — 4 stars</option>
+        </select>
+        <label>Button text</label>
+        <input type="text" v-model="b.cta">
+      </section>
+
+      <section>
+        <h2>Reader pin (C) — who it's for</h2>
+        <label>Headline <span class="hint">(line breaks kept)</span></label>
+        <textarea rows="2" v-model="c.headline"></textarea>
+        <label>Highlight word <span class="hint">(shown in your accent color)</span></label>
+        <input type="text" v-model="c.highlight">
+        <label>Corner tape <span class="hint">(short label on the book corner, e.g. OUT NOW)</span></label>
+        <input type="text" v-model="c.corner">
+        <label>Button text</label>
+        <input type="text" v-model="c.cta">
+      </section>
+
+      <section>
+        <h2>Reader hooks</h2>
+        <label>One per line <span class="hint">(used on the reader pin and tall pins)</span></label>
+        <textarea rows="4" v-model="hooksText"></textarea>
+      </section>
+
+      <section>
+        <h2>Availability</h2>
+        <div class="check-row">
+          <label><input type="checkbox" v-model="avail.amazon"> Show "Available on Amazon" badge</label>
+        </div>
+        <label>Formats line <span class="hint">(shown under the badge)</span></label>
+        <input type="text" v-model="avail.line">
+      </section>
+
+      <section>
+        <h2>Design</h2>
+        <div class="btn-row">
+          <button class="btn-sticker btn-small btn-ghost" @click="extractFromCover">Re-match colors to cover</button>
+        </div>
+        <label>Colors <span class="hint">(tap a square to change it)</span></label>
+        <div class="color-grid">
+          <div class="swatch" title="The pin's base background color"><input type="color" v-model="brand.colors.canvas"> Background</div>
+          <div class="swatch" title="Headlines and body text"><input type="color" v-model="brand.colors.ink"> Text</div>
+          <div class="swatch" title="Highlight words and buttons"><input type="color" v-model="brand.colors.accent"> Accent / buttons</div>
+          <div class="swatch" title="The decorative badge strips"><input type="color" v-model="brand.colors.gold"> Badge accent</div>
+          <div class="swatch" title="Background of the dark quote pin"><input type="color" v-model="brand.colors.board"> Dark pin background</div>
+        </div>
+        <label>Fonts</label>
+        <select v-model="fontPairId">
+          <option v-for="fp in fontPairs" :value="fp.id">{{ fp.label }}</option>
+        </select>
+        <label>Style</label>
+        <select v-model="brand.style">
+          <option value="soft">Elegant — soft shadows &amp; rounded</option>
+          <option value="clean">Modern — flat &amp; minimal</option>
+          <option value="workshop">Storybook — tape &amp; texture</option>
+          <option value="bold">Bold — thick lines &amp; pills</option>
+        </select>
+      </section>
+
+      <section>
+        <h2>Output</h2>
+        <label>Pin designs</label>
+        <div class="check-row">
+          <label><input type="checkbox" v-model="output.templates.a"> A — Spotlight</label>
+          <label><input type="checkbox" v-model="output.templates.b"> B — Quote</label>
+          <label><input type="checkbox" v-model="output.templates.c"> C — Reader</label>
+        </div>
+        <label>Sizes</label>
+        <div class="check-row">
+          <label><input type="checkbox" v-model="output.sizes.std"> Standard 2:3 <span class="hint">(1000×1500 — Pinterest's recommended size)</span></label>
+          <label><input type="checkbox" v-model="output.sizes.tall"> Tall <span class="hint">(1000×2100 — more room, may crop in feed)</span></label>
+        </div>
+      </section>
+
+      <details class="pub">
+        <summary>Publishing checklist</summary>
+        <ol>
+          <li>Upload the PNG and set the <b>destination link</b> to your Amazon page or website — the pin link is the clickable thing, not the image.</li>
+          <li>Title ≤100 chars, book title + genre keyword first. Description ≤500 chars, natural keywords, no hashtag walls.</li>
+          <li>Add alt text describing the book and cover.</li>
+          <li>Space out the variations — don't post them all the same day.</li>
+        </ol>
+      </details>
+    </aside>
+
+    <main>
+      <div class="pin-grid">
+        <div v-if="activePins.length === 0" class="empty-note">Pick at least one layout and one size.</div>
+
+        <div class="preview-slot" v-for="p in activePins" :key="p.id">
+          <div class="slot-head">
+            <span class="slot-label">{{ p.id }}</span>
+            <span class="slot-name">{{ p.name }} · {{ p.w }}×{{ p.h }}</span>
+            <button class="btn-sticker btn-small" @click="downloadOne(p.id)" :disabled="exporting">PNG ↓</button>
+          </div>
+          <div class="pin-frame" :style="{ width: p.w * 0.32 + 'px', height: p.h * 0.32 + 'px' }">
+            <div class="pin-scale">
+
+              <!-- ============ A standard — Spotlight ============ -->
+              <div v-if="p.id === '1a'" class="pin std light" :class="pinClass" data-pin="1a" data-name="spotlight" :style="pinVars"
+                   style="padding: 54px 80px 44px; align-items: center;">
+                <div class="tape-badge" style="font-size: 30px; padding: 13px 38px;">{{ a.badge }}</div>
+                <h1 class="headline" style="font-size: 80px; text-align: center; margin-top: 30px;" v-html="fmt(book.title, book.highlight)"></h1>
+                <p class="subhead" style="font-size: 33px; text-align: center; margin-top: 24px; max-width: 830px;">{{ a.blurb }}</p>
+                <book-3d :cover="book.cover" style="width: 340px; margin-top: 44px;"></book-3d>
+                <amazon-badge v-if="avail.amazon" small style="margin-top: auto;"></amazon-badge>
+                <div class="avail-line" style="margin-top: 14px;" v-if="avail.line">{{ avail.line }}</div>
+                <div class="cta-btn" style="font-size: 42px; padding: 26px 72px; margin-top: 26px;">{{ a.cta }}</div>
+                <div class="brand-footer" style="margin-top: 26px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
+              </div>
+
+              <!-- ============ A tall — Spotlight ============ -->
+              <div v-if="p.id === '2a'" class="pin tall light" :class="pinClass" data-pin="2a" data-name="spotlight" :style="pinVars"
+                   style="padding: 90px 80px 60px; align-items: center;">
+                <div class="tape-badge" style="font-size: 32px; padding: 15px 42px;">{{ a.badge }}</div>
+                <h1 class="headline" style="font-size: 94px; text-align: center; margin-top: 48px;" v-html="fmt(book.title, book.highlight)"></h1>
+                <p class="subhead" style="font-size: 37px; text-align: center; margin-top: 34px; max-width: 830px;">{{ a.blurb }}</p>
+                <book-3d :cover="book.cover" style="width: 430px; margin-top: 64px;"></book-3d>
+                <ul class="hook-list" style="margin-top: auto; padding-top: 56px; max-width: 800px;">
+                  <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
+                </ul>
+                <amazon-badge v-if="avail.amazon" style="margin-top: auto;"></amazon-badge>
+                <div class="avail-line" style="margin-top: 18px;" v-if="avail.line">{{ avail.line }}</div>
+                <div class="cta-btn" style="font-size: 46px; padding: 30px 84px; margin-top: 36px;">{{ a.cta }}</div>
+                <div class="brand-footer" style="margin-top: 38px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
+              </div>
+
+              <!-- ============ B standard — Quote ============ -->
+              <div v-if="p.id === '1b'" class="pin std dark" data-pin="1b" data-name="quote" :style="pinVars"
+                   style="padding: 60px 84px 46px; align-items: center;">
+                <div class="stars">{{ '★'.repeat(b.stars) }}</div>
+                <div class="quote-mark" style="margin-top: 42px;">“</div>
+                <p class="quote-text" style="font-size: 56px; text-align: center; max-width: 830px;">{{ b.quote }}</p>
+                <div class="quote-attr" style="margin-top: 26px;">— {{ b.attribution }}</div>
+                <book-3d :cover="book.cover" style="width: 330px; margin-top: auto;"></book-3d>
+                <div class="byline" style="font-size: 32px; margin-top: 44px;">{{ book.author }}</div>
+                <amazon-badge v-if="avail.amazon" small style="margin-top: auto;"></amazon-badge>
+                <div class="cta-btn" style="font-size: 40px; padding: 24px 68px; margin-top: 26px;">{{ b.cta }}</div>
+                <div class="mono-url" style="margin-top: 24px;">{{ book.url }}</div>
+              </div>
+
+              <!-- ============ B tall — Quote ============ -->
+              <div v-if="p.id === '2b'" class="pin tall dark" data-pin="2b" data-name="quote" :style="pinVars"
+                   style="padding: 96px 84px 64px; align-items: center;">
+                <div class="stars">{{ '★'.repeat(b.stars) }}</div>
+                <div class="quote-mark" style="margin-top: 60px;">“</div>
+                <p class="quote-text" style="font-size: 66px; text-align: center; max-width: 830px;">{{ b.quote }}</p>
+                <div class="quote-attr" style="margin-top: 36px;">— {{ b.attribution }}</div>
+                <book-3d :cover="book.cover" style="width: 430px; margin-top: auto;"></book-3d>
+                <div class="byline" style="font-size: 36px; margin-top: 60px;">{{ book.author }}</div>
+                <ul class="hook-list" style="margin-top: auto; padding-top: 70px; max-width: 800px;">
+                  <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
+                </ul>
+                <amazon-badge v-if="avail.amazon" style="margin-top: auto;"></amazon-badge>
+                <div class="cta-btn" style="font-size: 44px; padding: 28px 78px; margin-top: 34px;">{{ b.cta }}</div>
+                <div class="mono-url" style="margin-top: 32px;">{{ book.url }}</div>
+              </div>
+
+              <!-- ============ C standard — Reader ============ -->
+              <div v-if="p.id === '1c'" class="pin std light" :class="pinClass" data-pin="1c" data-name="reader" :style="pinVars"
+                   style="padding: 60px 76px 44px; align-items: center;">
+                <h1 class="headline" style="font-size: 76px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
+                <div style="position: relative; width: 360px; margin-top: 54px;">
+                  <div class="tape-badge" style="font-size: 28px; padding: 12px 30px; position: absolute; top: -24px; right: -56px; z-index: 2; transform: rotate(calc(var(--badge-rotate, -2deg) * -1.5));">{{ c.corner }}</div>
+                  <book-3d :cover="book.cover" tilt="tilt"></book-3d>
+                </div>
+                <ul class="hook-list" style="margin-top: auto; padding-top: 50px; max-width: 800px;">
+                  <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
+                </ul>
+                <amazon-badge v-if="avail.amazon" small style="margin-top: auto;"></amazon-badge>
+                <div class="cta-btn" style="font-size: 42px; padding: 26px 70px; margin-top: 26px;">{{ c.cta }}</div>
+                <div class="brand-footer" style="margin-top: 26px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
+              </div>
+
+              <!-- ============ C tall — Reader ============ -->
+              <div v-if="p.id === '2c'" class="pin tall light" :class="pinClass" data-pin="2c" data-name="reader" :style="pinVars"
+                   style="padding: 96px 76px 60px; align-items: center;">
+                <h1 class="headline" style="font-size: 86px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
+                <div style="position: relative; width: 470px; margin-top: 90px;">
+                  <div class="tape-badge" style="font-size: 30px; padding: 13px 34px; position: absolute; top: -26px; right: -60px; z-index: 2; transform: rotate(calc(var(--badge-rotate, -2deg) * -1.5));">{{ c.corner }}</div>
+                  <book-3d :cover="book.cover" tilt="tilt"></book-3d>
+                </div>
+                <p class="subhead" style="font-size: 36px; text-align: center; margin-top: 90px; max-width: 820px;">{{ a.blurb }}</p>
+                <ul class="hook-list" style="margin-top: auto; padding-top: 80px; max-width: 800px;">
+                  <li v-for="item in hooks"><span class="check">✓</span> {{ item }}</li>
+                </ul>
+                <amazon-badge v-if="avail.amazon" style="margin-top: auto;"></amazon-badge>
+                <div class="avail-line" style="margin-top: 18px;" v-if="avail.line">{{ avail.line }}</div>
+                <div class="cta-btn" style="font-size: 44px; padding: 28px 76px; margin-top: 34px;">{{ c.cta }}</div>
+                <div class="brand-footer" style="margin-top: 36px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="busy" v-if="exporting"><div>Rendering PNGs…</div></div>
+</div>
+
+<!-- 3D book mockup -->
+<script type="text/x-template" id="book3d-tpl">
+  <div class="book3d" :class="tilt">
+    <div class="book3d-shadow"></div>
+    <div class="book3d-body">
+      <img :src="cover" alt="">
+      <div class="book3d-crease"></div>
+      <div class="book3d-sheen"></div>
+    </div>
+  </div>
+</script>
+
+<!-- "Available on Amazon" badge -->
+<script type="text/x-template" id="amazon-tpl">
+  <div class="amazon-badge" :class="{ small: small !== undefined && small !== false }">
+    <span class="avail">Available on</span>
+    <span class="amz">amazon<svg viewBox="0 0 100 26" preserveAspectRatio="none"><path d="M4 6 C 28 26, 66 26, 90 11" stroke="#FF9900" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M88 3 L97 8 L87 13 Z" fill="#FF9900"/></svg></span>
+  </div>
+</script>
+
+<script>
+/*__VUE_JS__*/
+</script>
+
+<script>
+const LOGO_DEFAULT = '__LOGO_DATA__';
+const COVER_DEFAULT = '__COVER_DATA__';
+
+const { createApp, reactive, computed, watch, watchEffect } = Vue;
+
+// Curated Google Fonts pairings, serif-first for book covers. Inter is embedded
+// in this file (works offline); the rest load from Google Fonts for preview and
+// are inlined at export time.
+const FONT_PAIRS = [
+  { id: 'playfair', label: 'Literary — Playfair Display', display: 'Playfair Display', body: 'Source Sans 3', dw: '400;700;800;900', bw: '400;600;700', tracking: '-0.01em' },
+  { id: 'cormorant', label: 'Classic — Cormorant Garamond', display: 'Cormorant Garamond', body: 'Inter', dw: '500;600;700', bw: '', tracking: '0em' },
+  { id: 'lora', label: 'Editorial — Lora', display: 'Lora', body: 'Inter', dw: '400;500;600;700', bw: '', tracking: '0em' },
+  { id: 'libre', label: 'Bookish — Libre Baskerville', display: 'Libre Baskerville', body: 'Inter', dw: '400;700', bw: '', tracking: '-0.005em' },
+  { id: 'inter', label: 'Bold & modern — Inter', display: 'Inter', body: 'Inter', tracking: '-0.03em' },
+  { id: 'montserrat', label: 'Geometric — Montserrat', display: 'Montserrat', body: 'Montserrat', dw: '400;600;700;800;900', bw: '400;600;700', tracking: '-0.02em' },
+  { id: 'abril', label: 'Dramatic — Abril Fatface', display: 'Abril Fatface', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
+  { id: 'caveat', label: 'Handwritten — Caveat + Inter', display: 'Caveat', body: 'Inter', dw: '400;600;700', bw: '', tracking: '0em' },
+];
+
+const TEXTURED = { workshop: true, clean: false, bold: false, soft: false };
+
+function defaultBrand() {
+  return {
+    colors: { canvas: '#F6F1E4', ink: '#1E2A33', accent: '#1D4E63', gold: '#E9C46A', board: '#132633' },
+    fonts: { pair: 'playfair', display: 'Playfair Display', body: 'Source Sans 3', dw: '400;700;800;900', bw: '400;600;700', tracking: '-0.01em' },
+    style: 'soft',
+  };
+}
+function defaultBook() {
+  return {
+    title: 'The Midnight\nLighthouse',
+    highlight: 'Lighthouse',
+    author: 'ELENA MARSH',
+    url: 'elenamarsh.com',
+    cover: COVER_DEFAULT,
+  };
+}
+
+const app = createApp({
+  setup() {
+    const brand = reactive(defaultBrand());
+    const book = reactive(defaultBook());
+    const a = reactive({
+      badge: 'NEW RELEASE',
+      blurb: 'A storm, a secret, and one last chance to bring the light home. The unforgettable new novel readers are calling "impossible to put down."',
+      cta: 'Read the first chapter →',
+    });
+    const b = reactive({
+      quote: 'Atmospheric, aching, and utterly beautiful. I read it in one sitting.',
+      attribution: 'Coastal Book Review',
+      stars: 5,
+      cta: 'Get your copy →',
+    });
+    const c = reactive({
+      headline: 'Your next\nbeach read is here',
+      highlight: 'beach read',
+      corner: 'OUT NOW',
+      cta: 'Start reading today →',
+    });
+    const state = reactive({
+      hooksText: 'Small-town secrets & slow-burn romance\nA mystery 40 years in the making\nPerfect for fans of Kristin Hannah',
+      avail: { amazon: true, line: 'Paperback · Kindle · Kindle Unlimited' },
+      output: { templates: { a: true, b: true, c: true }, sizes: { std: true, tall: false } },
+      exporting: false,
+      importMsg: '',
+    });
+
+    const hooks = computed(() => state.hooksText.split('\n').map(s => s.trim()).filter(Boolean));
+
+    // ----- style presets: each is a bundle of motif variables -----
+    function rgbaOf(hex, a) {
+      const p = hex.match(/\w\w/g).map(x => parseInt(x, 16));
+      return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+    }
+    function styleVars(id, col) {
+      const ink = col.ink;
+      if (id === 'clean') return {
+        '--badge-rotate': '0deg', '--badge-radius': '8px', '--badge-shadow': '0 6px 18px ' + rgbaOf(ink, 0.18),
+        '--btn-radius': '12px', '--btn-border': '1.5px solid ' + rgbaOf(ink, 0.35),
+        '--el-shadow': '0 10px 26px ' + rgbaOf(ink, 0.22), '--el-shadow-dark': '0 10px 26px rgba(0,0,0,0.4)',
+        '--tilt': '0deg',
+      };
+      if (id === 'bold') return {
+        '--badge-rotate': '-1deg', '--badge-radius': '999px', '--badge-shadow': '5px 5px 0 ' + ink,
+        '--btn-radius': '999px', '--btn-border': '4px solid ' + ink,
+        '--el-shadow': '8px 8px 0 ' + ink, '--el-shadow-dark': '8px 8px 0 rgba(0,0,0,0.55)',
+        '--tilt': '-2deg',
+      };
+      if (id === 'workshop') return {
+        '--badge-rotate': '-2deg', '--badge-radius': '0px', '--badge-shadow': '4px 4px 0 ' + rgbaOf(ink, 0.25),
+        '--btn-radius': '10px', '--btn-border': '3px solid ' + ink,
+        '--el-shadow': '6px 6px 0 ' + ink, '--el-shadow-dark': '6px 6px 0 rgba(0,0,0,0.55)',
+        '--tilt': '-2.5deg',
+      };
+      return { // soft — elegant default for books
+        '--badge-rotate': '0deg', '--badge-radius': '14px', '--badge-shadow': '0 4px 14px ' + rgbaOf(ink, 0.14),
+        '--btn-radius': '24px', '--btn-border': '0 solid transparent',
+        '--el-shadow': '0 8px 22px ' + rgbaOf(ink, 0.2), '--el-shadow-dark': '0 8px 22px rgba(0,0,0,0.4)',
+        '--tilt': '-1.5deg',
+      };
+    }
+
+    const pinVars = computed(() => ({
+      '--canvas': brand.colors.canvas,
+      '--ink': brand.colors.ink,
+      '--accent': brand.colors.accent,
+      '--gold': brand.colors.gold,
+      '--board': brand.colors.board,
+      '--muted': mix(brand.colors.ink, brand.colors.canvas, 0.82),
+      '--cream': brand.colors.canvas,
+      '--font-display': brand.fonts.display === 'Inter' ? "'Inter'" : `'${brand.fonts.display}', 'Inter'`,
+      '--font-body': brand.fonts.body === 'Inter' ? "'Inter'" : `'${brand.fonts.body}', 'Inter'`,
+      '--display-tracking': brand.fonts.tracking || '-0.02em',
+      ...styleVars(brand.style, brand.colors),
+    }));
+
+    const pinClass = computed(() => ({ textured: TEXTURED[brand.style] !== false }));
+
+    const fontPairId = computed({
+      get: () => brand.fonts.pair,
+      set: (id) => {
+        const fp = FONT_PAIRS.find(f => f.id === id);
+        if (fp) Object.assign(brand.fonts, { pair: fp.id, display: fp.display, body: fp.body, dw: fp.dw || '', bw: fp.bw || '', tracking: fp.tracking });
+      },
+    });
+
+    // Load non-embedded fonts from Google Fonts for the live preview
+    function gfCss2Url(fonts) {
+      const fams = [];
+      const add = (name, w) => {
+        if (!name || name === 'Inter' || fams.some(f => f.startsWith('family=' + name.replace(/ /g, '+') + ':'))) return;
+        fams.push('family=' + name.trim().replace(/ /g, '+') + ':wght@' + (w || '400;700'));
+      };
+      add(fonts.display, fonts.dw);
+      add(fonts.body, fonts.bw);
+      return fams.length ? 'https://fonts.googleapis.com/css2?' + fams.join('&') + '&display=swap' : null;
+    }
+    watchEffect(() => {
+      const url = gfCss2Url(brand.fonts);
+      let link = document.getElementById('gf-dyn');
+      if (!url) { if (link) link.remove(); return; }
+      if (!link) {
+        link = document.createElement('link');
+        link.id = 'gf-dyn'; link.rel = 'stylesheet';
+        document.head.appendChild(link);
+      }
+      if (link.href !== url) link.href = url;
+    });
+
+    const NAMES = { a: 'spotlight pin', b: 'quote pin', c: 'reader pin' };
+    const activePins = computed(() => {
+      const pins = [];
+      for (const [sizeKey, row] of [['std', '1'], ['tall', '2']]) {
+        if (!state.output.sizes[sizeKey]) continue;
+        for (const t of ['a', 'b', 'c']) {
+          if (!state.output.templates[t]) continue;
+          pins.push({ id: row + t, name: NAMES[t], w: 1000, h: sizeKey === 'std' ? 1500 : 2100 });
+        }
+      }
+      return pins;
+    });
+
+    function mix(hexA, hexB, ratio) {
+      const pa = hexA.match(/\w\w/g).map(x => parseInt(x, 16));
+      const pb = hexB.match(/\w\w/g).map(x => parseInt(x, 16));
+      return '#' + pa.map((v, i) => Math.round(v * ratio + pb[i] * (1 - ratio)).toString(16).padStart(2, '0')).join('');
+    }
+
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function fmt(text, highlight) {
+      let out = esc(text || '');
+      const hl = esc((highlight || '').trim());
+      if (hl) out = out.split(hl).join('<span class="pop">' + hl + '</span>');
+      return out.replace(/\n/g, '<br>');
+    }
+
+    function onFile(e, set) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => set(r.result);
+      r.readAsDataURL(f);
+    }
+
+    // ----- color math -----
+    const chan = (hex) => hex.match(/\w\w/g).map(x => parseInt(x, 16));
+    const toHex = (c) => '#' + [c.r, c.g, c.b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+    const lum = (c) => { // WCAG relative luminance
+      const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    };
+    const sat = (c) => (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b)) / 255;
+    const hue = (c) => Math.atan2(Math.sqrt(3) * (c.g - c.b), 2 * c.r - c.g - c.b) * 180 / Math.PI;
+    const hueDist = (a, b) => { const d = Math.abs(hue(a) - hue(b)) % 360; return d > 180 ? 360 - d : d; };
+    const contrast = (hexA, hexB) => {
+      const [pa, pb] = [hexA, hexB].map(h => { const [r, g, b] = chan(h); return lum({ r, g, b }); });
+      return (Math.max(pa, pb) + 0.05) / (Math.min(pa, pb) + 0.05);
+    };
+    const rgbOf = (hex) => { const [r, g, b] = chan(hex); return { r, g, b }; };
+
+    // Map weighted color clusters [{r,g,b,n}] onto the five pin color slots
+    function classifyClusters(clusters) {
+      const out = {};
+      const light = clusters.filter(c => lum(c) > 0.5 && sat(c) < 0.4).sort((a, b) => b.n - a.n)[0];
+      const dark = clusters.filter(c => lum(c) < 0.1).sort((a, b) => b.n - a.n)[0];
+      const accents = clusters
+        .filter(c => sat(c) > 0.2 && lum(c) > 0.02 && lum(c) < 0.75)
+        .sort((a, b) => sat(b) * Math.sqrt(b.n) - sat(a) * Math.sqrt(a.n));
+      const accent = accents[0];
+      const accent2 = accents.find(c => accent && hueDist(c, accent) > 45 && lum(c) > lum(accent) * 0.8);
+
+      // Pins read best on a soft warm canvas, so tint the extracted light color gently.
+      out.canvas = light ? mix(toHex(light), '#FBF7EE', 0.35) : '#F7F3EC';
+      out.ink = dark ? toHex(dark) : '#221F1C';
+      if (lum(rgbOf(out.ink)) < 0.005) out.ink = mix(out.ink, '#FFFFFF', 0.93); // never pure black
+      out.accent = accent ? toHex(accent) : '#9A4B33';
+      // Buttons carry canvas-colored text — deepen the accent until it reads.
+      for (let i = 0; i < 12 && contrast(out.accent, out.canvas) < 3; i++) out.accent = mix(out.accent, '#000000', 0.88);
+      out.gold = accent2 ? mix(toHex(accent2), '#FFFFFF', 0.75) : mix(out.accent, '#FFFFFF', 0.5);
+      out.board = dark ? mix(toHex(dark), out.accent, 0.75) : mix(out.accent, '#000000', 0.3);
+      if (lum(rgbOf(out.board)) > 0.12) out.board = mix(out.board, '#000000', 0.55);
+      return out;
+    }
+
+    // Extract a palette from the uploaded cover
+    async function extractCoverColors(dataUrl) {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+      const S = 64;
+      const cv = document.createElement('canvas');
+      cv.width = S; cv.height = S;
+      const cx = cv.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(img, 0, 0, S, S);
+      const data = cx.getImageData(0, 0, S, S).data;
+      const buckets = new Map();
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 128) continue;
+        const key = ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4);
+        const e = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 };
+        e.n++; e.r += data[i]; e.g += data[i + 1]; e.b += data[i + 2];
+        buckets.set(key, e);
+      }
+      let clusters = [...buckets.values()]
+        .map(e => ({ n: e.n, r: e.r / e.n, g: e.g / e.n, b: e.b / e.n }))
+        .sort((a, b) => b.n - a.n)
+        .slice(0, 24);
+      const merged = [];
+      for (const c of clusters) {
+        const m = merged.find(mm => Math.hypot(mm.r - c.r, mm.g - c.g, mm.b - c.b) < 40);
+        if (m) {
+          const t = m.n + c.n;
+          m.r = (m.r * m.n + c.r * c.n) / t; m.g = (m.g * m.n + c.g * c.n) / t; m.b = (m.b * m.n + c.b * c.n) / t;
+          m.n = t;
+        } else merged.push({ ...c });
+      }
+      return classifyClusters(merged);
+    }
+
+    async function extractFromCover() {
+      try {
+        Object.assign(brand.colors, await extractCoverColors(book.cover));
+        state.importMsg = 'Pin colors matched to your cover — adjust any swatch below.';
+      } catch {
+        state.importMsg = "Couldn't read the cover image.";
+      }
+    }
+
+    async function setCover(dataUrl) {
+      // Downscale huge covers so previews stay fast and the kit fits in localStorage.
+      try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+        const MAX = 1400;
+        if (img.naturalHeight > MAX || img.naturalWidth > MAX) {
+          const k = MAX / Math.max(img.naturalWidth, img.naturalHeight);
+          const cv = document.createElement('canvas');
+          cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+          const cx = cv.getContext('2d');
+          cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+          cx.drawImage(img, 0, 0, cv.width, cv.height);
+          dataUrl = cv.toDataURL('image/jpeg', 0.92);
+        }
+      } catch {}
+      book.cover = dataUrl;
+      extractFromCover();
+    }
+
+    // ----- book kit save/load + persistence -----
+    const bookKit = () => ({
+      version: 1, app: 'pinterest-studio-authors',
+      book: { ...book }, colors: { ...brand.colors }, fonts: { ...brand.fonts }, style: brand.style,
+      a: { ...a }, b: { ...b }, c: { ...c },
+      hooksText: state.hooksText, avail: { ...state.avail },
+    });
+    function applyKit(k) {
+      if (!k || k.version !== 1 || !k.colors || !k.book) throw new Error('not a Pinterest Studio for Authors book kit');
+      const { cover, ...bookRest } = k.book;
+      Object.assign(book, bookRest);
+      if (cover) book.cover = cover;
+      Object.assign(brand.colors, k.colors);
+      if (k.fonts) Object.assign(brand.fonts, k.fonts);
+      if (k.style) brand.style = k.style;
+      if (k.a) Object.assign(a, k.a);
+      if (k.b) Object.assign(b, k.b);
+      if (k.c) Object.assign(c, k.c);
+      if (k.hooksText) state.hooksText = k.hooksText;
+      if (k.avail) Object.assign(state.avail, k.avail);
+    }
+    function saveKit() {
+      const slug = (book.title || 'book').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'book';
+      saveBlob(new Blob([JSON.stringify(bookKit(), null, 2)], { type: 'application/json' }), slug + '.bookkit.json');
+    }
+    function loadKit(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try { applyKit(JSON.parse(r.result)); state.importMsg = 'Book kit loaded.'; }
+        catch (err) { state.importMsg = 'Load failed: ' + err.message; }
+      };
+      r.readAsText(f);
+      e.target.value = '';
+    }
+    function resetAll() {
+      Object.assign(brand, defaultBrand());
+      Object.assign(book, defaultBook());
+      state.importMsg = '';
+      try { localStorage.removeItem('pinauthors.kit.v1'); } catch {}
+    }
+    try {
+      const saved = localStorage.getItem('pinauthors.kit.v1');
+      if (saved) applyKit(JSON.parse(saved));
+    } catch {}
+    watch(bookKit, () => {
+      const kit = bookKit();
+      try { localStorage.setItem('pinauthors.kit.v1', JSON.stringify(kit)); }
+      catch { // cover too large for localStorage — persist everything else
+        try { localStorage.setItem('pinauthors.kit.v1', JSON.stringify({ ...kit, book: { ...kit.book, cover: null } })); } catch {}
+      }
+    }, { deep: true });
+
+    // ----- export-time font inlining for non-embedded pairings -----
+    function bufToB64(buf) {
+      const u8 = new Uint8Array(buf);
+      let s = '';
+      for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+      return btoa(s);
+    }
+    const pairCssCache = new Map();
+    async function getPairCss() {
+      const url = gfCss2Url(brand.fonts);
+      if (!url) return '';
+      if (pairCssCache.has(url)) return pairCssCache.get(url);
+      const css = await (await fetch(url)).text();
+      let out = '';
+      for (const part of css.split('/* ')) { // keep latin subset only
+        if (!part.startsWith('latin */')) continue;
+        let face = part.slice(part.indexOf('@font-face'));
+        face = face.slice(0, face.indexOf('}') + 1);
+        const u = face.match(/url\((https:[^)]+\.woff2)\)/)?.[1];
+        if (!u) continue;
+        const buf = await (await fetch(u)).arrayBuffer();
+        out += face.replace(u, 'data:font/woff2;base64,' + bufToB64(buf)).replace(/unicode-range:[^;]+;/, '') + '\n';
+      }
+      pairCssCache.set(url, out);
+      return out;
+    }
+
+    async function renderPin(el, extraCss) {
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const css = document.getElementById('font-styles').textContent + '\n' +
+                  document.getElementById('pin-styles').textContent + '\n' + (extraCss || '');
+      const clone = el.cloneNode(true);
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
+        '<style><![CDATA[' + css + ']]></style>' +
+        '<foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">' + html + '</div></foreignObject></svg>';
+      const img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      await img.decode();
+      // Export at 2× for crisper pins (the SVG source is vector, so it scales sharply)
+      const SCALE = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = w * SCALE; canvas.height = h * SCALE;
+      canvas.getContext('2d').drawImage(img, 0, 0, w * SCALE, h * SCALE);
+      return new Promise(res => canvas.toBlob(res, 'image/png'));
+    }
+
+    function saveBlob(blob, filename) {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+    }
+
+    let fontWarned = false;
+    async function exportFontCss() {
+      try { return await getPairCss(); }
+      catch {
+        if (!fontWarned) { fontWarned = true; alert("Couldn't fetch this font pairing for export (offline?). The pins will use the built-in font."); }
+        return '';
+      }
+    }
+
+    async function exportId(id, extraCss) {
+      const el = document.querySelector('[data-pin="' + id + '"]');
+      if (!el) return;
+      const blob = await renderPin(el, extraCss);
+      const slug = (book.title || 'book').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'book';
+      saveBlob(blob, slug + '-pin-' + id + '-' + el.dataset.name + '-' + (el.offsetWidth * 2) + 'x' + (el.offsetHeight * 2) + '.png');
+    }
+
+    async function downloadOne(id) {
+      state.exporting = true;
+      try { await exportId(id, await exportFontCss()); } finally { state.exporting = false; }
+    }
+
+    async function downloadAll() {
+      state.exporting = true;
+      try {
+        const extraCss = await exportFontCss();
+        for (const p of activePins.value) {
+          await exportId(p.id, extraCss);
+          await new Promise(r => setTimeout(r, 350));
+        }
+      } finally { state.exporting = false; }
+    }
+
+    const rw = (key) => computed({ get: () => state[key], set: v => state[key] = v });
+    return {
+      LOGO: LOGO_DEFAULT,
+      brand, book, a, b, c,
+      hooksText: rw('hooksText'),
+      avail: state.avail, output: state.output,
+      exporting: computed(() => state.exporting),
+      importMsg: computed(() => state.importMsg),
+      fontPairs: FONT_PAIRS, fontPairId, pinClass,
+      hooks, pinVars, activePins,
+      fmt, onFile, setCover, extractFromCover,
+      downloadOne, downloadAll, saveKit, loadKit, resetAll,
+    };
+  },
+});
+
+app.component('book-3d', {
+  template: '#book3d-tpl',
+  props: ['cover', 'tilt'],
+});
+app.component('amazon-badge', {
+  template: '#amazon-tpl',
+  props: ['small'],
+});
+
+app.mount('#app');
+</script>
+</body>
+</html>
