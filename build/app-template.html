@@ -109,21 +109,21 @@
 <!-- App UI styles (never exported) -->
 <style>
   :root {
-    --ui-canvas: #F6F1E7; --ui-warm: #EFE7D6; --ui-paper: #FBF7ED;
-    --ui-ink: #221D18; --ui-muted: #4A423A; --ui-accent: #9A4B33;
-    --ui-gold: #D9A441; --ui-board: #211B15;
+    --ui-canvas: #FDF0F7; --ui-warm: #FBE3F1; --ui-paper: #FFF8FC;
+    --ui-ink: #3A1030; --ui-muted: #7A4468; --ui-accent: #E0218A;
+    --ui-gold: #F9A8D4; --ui-board: #2B0C23;
+    --ui-grad: linear-gradient(100deg, #E0218A 0%, #B02BB5 55%, #7C2BB8 100%);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--ui-canvas); color: var(--ui-ink); font-family: 'Inter', sans-serif; }
 
   header {
     display: flex; align-items: center; gap: 14px; padding: 14px 24px;
-    background: var(--ui-canvas); border-bottom: 1.5px solid var(--ui-ink);
+    background: var(--ui-grad); color: #fff; border-bottom: 1.5px solid var(--ui-ink);
     position: sticky; top: 0; z-index: 50;
   }
-  header img { width: 42px; height: 42px; border-radius: 50%; }
   header h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.025em; }
-  header .tag { font-size: 13px; color: var(--ui-muted); font-weight: 600; margin-top: 2px; }
+  header .tag { font-size: 13px; color: rgba(255,255,255,0.85); font-weight: 600; margin-top: 2px; }
   header .spacer { flex: 1; }
 
   .btn-sticker {
@@ -190,6 +190,12 @@
   details.pub summary { font-weight: 800; font-size: 14px; cursor: pointer; }
   details.pub ol { margin: 10px 0 0 18px; font-size: 13px; line-height: 1.7; color: var(--ui-muted); }
   .hint-p { font-size: 12px; color: var(--ui-muted); margin: 10px 0 8px; line-height: 1.5; }
+  .acw-credit {
+    display: flex; align-items: center; gap: 10px; margin-top: 24px; padding-top: 16px;
+    border-top: 1px solid var(--ui-gold); font-size: 12.5px; color: var(--ui-muted);
+  }
+  .acw-credit img { width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 1.5px solid var(--ui-ink); }
+  .acw-credit b { color: var(--ui-ink); }
 
   main { flex: 1; padding: 28px; }
   .pin-grid { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
@@ -233,14 +239,13 @@
   }
   .cp-copy:hover { background: var(--ui-gold); }
   .cp-copy.done { background: var(--ui-gold); }
-  .busy { position: fixed; inset: 0; background: rgba(34,29,24,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .busy { position: fixed; inset: 0; background: rgba(43,12,35,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
   .busy div { background: var(--ui-paper); border: 1.5px solid var(--ui-ink); box-shadow: 4px 4px 0 var(--ui-ink); padding: 22px 34px; font-weight: 800; }
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <img :src="LOGO" alt="logo">
     <div>
       <h1>Pinterest Studio for Authors</h1>
       <div class="tag">Upload your cover. Download Pinterest-ready book pins.</div>
@@ -418,6 +423,11 @@
           <li>Space out the variations — don't post them all the same day.</li>
         </ol>
       </details>
+
+      <div class="acw-credit">
+        <img :src="LOGO" alt="AI Creators' Workshop logo">
+        <span>Created by <b>AI Creators' Workshop</b></span>
+      </div>
     </aside>
 
     <main>
