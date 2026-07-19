@@ -243,6 +243,7 @@
     padding: 2px 8px; transform: rotate(-1deg);
   }
   .cp-head .spacer { flex: 1; }
+  .cp-note { font-size: 12px; line-height: 1.45; color: var(--ui-muted); margin: -4px 0 12px; }
   .cp-row { margin-bottom: 10px; }
   .cp-label {
     display: flex; align-items: center; gap: 6px;
@@ -396,7 +397,7 @@
 
       <section>
         <h2>Paper-strips pin (E)</h2>
-        <p class="hint-p">Each line becomes its own torn notebook-paper strip in handwritten marker. Keep each line short so it fits on one strip. The strips sit on a simple color (change it via the design controls, scoped to Paper Strips) — or upload your own photo as the "Pin background image" (Design &amp; style) and tick <b>Paper Strips</b>.</p>
+        <p class="hint-p">Each line becomes its own torn notebook-paper strip in handwritten marker. Keep each line short so it fits on one strip. The strips sit on a lavender-field photo, tinted by the board colour (change it via the design controls, scoped to Paper Strips) — or upload your own photo as the "Pin background image" (Design &amp; style) and tick <b>Paper Strips</b>.</p>
         <label>Strip lines <span class="hint">(one strip per line)</span></label>
         <textarea rows="5" v-model="f.stripsText"></textarea>
         <label>Listicle title <span class="hint">(powers the Pinterest copy — not shown on the pin)</span></label>
@@ -440,6 +441,8 @@
         <input type="text" v-model="seo.keyword" placeholder='e.g. "beach reads 2026"'>
         <label>Supporting phrases <span class="hint">(optional, comma-separated — woven into descriptions)</span></label>
         <input type="text" v-model="seo.keywords2" placeholder='e.g. "books to read this summer, TBR list"'>
+        <label>Hashtags <span class="hint">(optional, comma-separated — leave blank to auto-build them from your genre &amp; keywords)</span></label>
+        <input type="text" v-model="seo.hashtags" placeholder='e.g. "cozy mystery, beach reads, book recommendations"'>
         <label>Destination link <span class="hint">(your Amazon page or book page — where a click should land)</span></label>
         <input type="text" v-model="seo.link" placeholder="https://amazon.com/dp/…">
       </section>
@@ -532,6 +535,7 @@
           <li>Upload the PNG and set the <b>destination link</b> to your Amazon page or website — the pin link is the clickable thing, not the image.</li>
           <li>Title ≤100 chars, book title + genre keyword first. Description ≤500 chars, natural keywords, no hashtag walls.</li>
           <li>Add alt text describing the book and cover.</li>
+          <li>Paste the hashtags at the end of the description (5 max).</li>
           <li>Space out the variations — don't post them all the same day.</li>
         </ol>
       </details>
@@ -548,7 +552,7 @@
 
         <div class="preview-slot" v-for="p in activePins" :key="p.id">
           <div class="slot-head">
-            <span class="slot-label">{{ p.id }}</span>
+            <span class="slot-label">{{ p.label }}</span>
             <span class="slot-name">{{ p.name }} · {{ p.w }}×{{ p.h }}</span>
             <button class="btn-sticker btn-small" @click="downloadOne(p.id)" :disabled="exporting">PNG ↓</button>
           </div>
@@ -696,6 +700,7 @@
                 {{ copied === p.id + ':all' ? 'Copied ✓' : 'Copy all' }}
               </button>
             </div>
+            <p class="cp-note">Written from your sidebar answers — skim it for any leftover example wording.</p>
             <div class="cp-row" v-for="f in packFields" :key="f.key">
               <div class="cp-label">
                 {{ f.label }}
@@ -874,6 +879,7 @@ const app = createApp({
       audience: 'fans of Kristin Hannah and slow-burn romance',
       keyword: '',
       keywords2: '',
+      hashtags: '',
       link: '',
     };
     const seo = reactive({ ...SEO_DEFAULTS });
@@ -919,6 +925,25 @@ const app = createApp({
     });
     const hasLink = computed(() => !!destination.value);
 
+    // "beach reads 2026" -> "BeachReads2026" (hashtag body, existing caps kept)
+    const tagify = (s) => flatTxt(s).split(/\s+/)
+      .map(w => (w.charAt(0).toUpperCase() + w.slice(1)).replace(/[^A-Za-z0-9]/g, ''))
+      .filter(Boolean).join('');
+    const dedupe = (list) => {
+      const seen = new Set(), out = [];
+      for (const t of list) { const k = t.toLowerCase(); if (t && !seen.has(k)) { seen.add(k); out.push(t); } }
+      return out;
+    };
+    const supportKws = computed(() => flatTxt(seo.keywords2).split(',').map(s => s.trim()).filter(Boolean));
+
+    // Hashtags: the author's own list wins; otherwise built from the genre and
+    // search phrases. Kept to 5 — Pinterest treats hashtag walls as spam.
+    const hashtagLine = computed(() => {
+      const own = flatTxt(seo.hashtags).split(/[,#]+/).map(tagify).filter(Boolean);
+      const auto = [primaryKw.value, genreTxt.value, ...supportKws.value, 'book recommendations', authorName.value].map(tagify);
+      return dedupe(own.length ? own : auto).slice(0, 5).map(t => '#' + t).join(' ');
+    });
+
     const packs = computed(() => {
       const title = flatTxt(book.title);
       const author = authorName.value;
@@ -926,7 +951,7 @@ const app = createApp({
       const genreT = tc(genre);
       const p = primaryKw.value, pt = tc(p);
       const reader = lcSmart(firstClause(seo.audience));
-      const kws = flatTxt(seo.keywords2).split(',').map(s => s.trim()).filter(Boolean);
+      const kws = supportKws.value;
       const items = hooks.value.map(s => s.replace(/[.]+$/, ''));
       const hookList = (n) => items.slice(0, n).map((s, i) => i === 0 ? lcSmart(s) : lcSmart(s)).join(', ');
       const amazon = !!state.avail.amazon;
@@ -941,6 +966,7 @@ const app = createApp({
         description: clipWords(flatTxt(description), 500),
         alt: flatTxt(alt),
         board: clipWords(board, 50),
+        hashtags: hashtagLine.value,
         link: linkLine,
       });
 
@@ -1015,6 +1041,7 @@ const app = createApp({
       { key: 'description', label: 'Description', max: 500 },
       { key: 'alt', label: 'Alt text', max: 0 },
       { key: 'board', label: 'Board', max: 0 },
+      { key: 'hashtags', label: 'Hashtags', max: 0 },
       { key: 'link', label: 'Destination link', max: 0 },
     ];
     const packOf = (p) => packs.value[p.id.slice(1)];
@@ -1034,7 +1061,7 @@ const app = createApp({
     const PACK_NAMES = { a: 'SPOTLIGHT PIN (A)', b: 'QUOTE PIN (B)', c: 'READER PIN (C)', d: 'BUILD-YOUR-OWN PIN (D)', f: 'PAPER-STRIPS PIN (E)' };
     function packText(t) {
       const k = packs.value[t];
-      return `Title: ${k.title}\nDescription: ${k.description}\nAlt text: ${k.alt}\nBoard: ${k.board}\nLink: ${k.link}`;
+      return `Title: ${k.title}\nDescription: ${k.description}\nAlt text: ${k.alt}\nBoard: ${k.board}\nHashtags: ${k.hashtags}\nLink: ${k.link}`;
     }
     function copyPack(id) { copyText(packText(id.slice(1)), id + ':all'); }
     function copyAllPacks() {
@@ -1133,15 +1160,24 @@ const app = createApp({
       };
     }
 
+    // Built-in default photo for the Paper Strips background (lavender field).
+    // Inlined by build.mjs as a data URL so it serialises through the PNG export.
+    const F_BG_DEFAULT = '__FLOWERS_BG__';
+
     // Paper Strips (f) background: the user's uploaded photo when enabled (via
-    // the shared bgStyle scrim path), otherwise a simple two-tone color wash
-    // built from the design's board color — the strips are the star, the
-    // background just has to stay quiet. Recolorable via the F design scope.
+    // the shared bgStyle scrim path), otherwise the built-in lavender photo
+    // under a scrim in the design's board color — the strips are the star, so
+    // the photo stays knocked back. Recolorable via the F design scope.
     function bgStyleF(p) {
       const user = bgStyle(p);
       if (user) return user;
-      const c = resolvedFor('f').colors;
-      return { backgroundImage: `linear-gradient(160deg, ${mix(c.board, '#FFFFFF', 0.88)}, ${c.board} 55%, ${mix(c.board, '#000000', 0.85)})` };
+      const [r, g, b] = chan(resolvedFor('f').colors.board);
+      const scrim = `rgba(${r},${g},${b},0.28)`;
+      return {
+        backgroundImage: `linear-gradient(${scrim}, ${scrim}), url(${F_BG_DEFAULT})`,
+        backgroundSize: 'cover, cover',
+        backgroundPosition: 'center, center',
+      };
     }
 
     // Build-Your-Own (d) background. Its own uploaded image + light scrim so the
@@ -1198,7 +1234,9 @@ const app = createApp({
         if (!state.output.sizes[sizeKey]) continue;
         for (const t of ['a', 'b', 'c', 'd', 'f']) {
           if (!state.output.templates[t]) continue;
-          pins.push({ id: row + t, name: NAMES[t], w: 1000, h: sizeKey === 'std' ? 1500 : 2100 });
+          // Paper Strips keeps its internal key 'f' (In Hand used to be 'e'), but
+          // shows as E in the UI so the slot labels run A–E with no gap.
+          pins.push({ id: row + t, label: row + (t === 'f' ? 'e' : t), name: NAMES[t], w: 1000, h: sizeKey === 'std' ? 1500 : 2100 });
         }
       }
       return pins;
@@ -1478,13 +1516,37 @@ const app = createApp({
     try { leanSaved = JSON.parse(localStorage.getItem(KIT_KEY)); } catch {}
     if (leanSaved) { try { applyKit(leanSaved); } catch {} }
 
+    // Every text field the example kit fills in, paired with its example value.
+    // Settings (cover, mockup, book type) are left out — they're choices a real
+    // author might legitimately share with the example.
+    const NOT_PROSE = new Set(['cover', 'mockup', 'kind']);
+    const EXAMPLE_FIELDS = (() => {
+      const out = [];
+      if (!DEFAULT_KIT) return out;
+      for (const [section, live] of Object.entries({ book, a, b, c, seo })) {
+        const src = DEFAULT_KIT[section];
+        if (!src) continue;
+        for (const [key, val] of Object.entries(src)) {
+          if (typeof val === 'string' && val.trim() && !NOT_PROSE.has(key)) out.push([live, key, val]);
+        }
+      }
+      return out;
+    })();
+    // True while any example wording is still on the pins. Editing the book title
+    // used to be enough to drop the note, which hid it exactly when it mattered —
+    // the blurb, the quote and the hooks were all still the example's words.
+    const exampleTextRemains = () =>
+      (DEFAULT_KIT && state.hooksText === DEFAULT_KIT.hooksText) ||
+      EXAMPLE_FIELDS.some(([live, key, val]) => live[key] === val);
+
     // `ready` gates the watchers so initial hydration below doesn't echo back to
     // storage (and so the default cover isn't re-written to IDB on every load).
     let ready = false;
     watch(bookKit, () => {                 // text/colors/settings -> localStorage
       if (!ready) return;
       if (resetting) { resetting = false; try { localStorage.removeItem(KIT_KEY); } catch {} return; }
-      state.showExampleNote = false; // first edit — it's their book now
+      // Only ever hides, never comes back — a note dismissed with × stays gone.
+      if (state.showExampleNote) state.showExampleNote = exampleTextRemains();
       saveLocal();
     }, { deep: true });
     if (IDB_OK) {                          // images -> IndexedDB, only when they change
