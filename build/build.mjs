@@ -22,15 +22,19 @@ const paper = 'data:image/svg+xml;base64,' +
   readFileSync(here('paper-texture.svg')).toString('base64');
 const cover = 'data:image/svg+xml;base64,' +
   readFileSync(here('sample-cover.svg')).toString('base64');
+// The handwritten marker font used on the Paper Strips (f) template.
+const markerFont  = 'data:font/ttf;base64,'   + readFileSync(here('marker.ttf')).toString('base64');
 
 html = html
   .split('/*__FONTS_CSS__*/').join(fonts)
   .split('/*__VUE_JS__*/').join(vue)
   .split('__LOGO_DATA__').join(logo)
   .split('__PAPER_DATA__').join(paper)
-  .split('__COVER_DATA__').join(cover);
+  .split('__COVER_DATA__').join(cover)
+  .split('__MARKER_FONT__').join(markerFont);
 
-for (const token of ['__FONTS_CSS__', '__VUE_JS__', '__LOGO_DATA__', '__PAPER_DATA__', '__COVER_DATA__']) {
+for (const token of ['__FONTS_CSS__', '__VUE_JS__', '__LOGO_DATA__', '__PAPER_DATA__', '__COVER_DATA__',
+                     '__MARKER_FONT__']) {
   if (html.includes(token)) throw new Error('unreplaced token: ' + token);
 }
 writeFileSync(out, html);

@@ -104,6 +104,24 @@
   .book3d { position: relative; }
   .book3d img { width: 100%; height: auto; }
   .book3d.tilt { transform: rotate(var(--tilt, -1.5deg)); }
+
+  /* ---- Handwritten marker font for the Paper Strips (f) template ---- */
+  @font-face {
+    font-family: 'Marker Strips'; font-style: normal; font-weight: 400;
+    font-display: swap; src: url("__MARKER_FONT__") format('truetype');
+  }
+
+  /* ---- Paper Strips (f): torn strips over a color wash or the user's photo ---- */
+  .strips-wrap { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+  .paper-strip {
+    position: relative; display: inline-block; max-width: 90%;
+    background-size: 100% 100%; background-repeat: no-repeat;
+  }
+  .strip-text {
+    font-family: 'Marker Strips', 'Caveat', cursive; color: #1a1a1a;
+    line-height: 0.9; white-space: nowrap; text-align: center;
+    position: relative; z-index: 1;
+  }
 </style>
 
 <!-- App UI styles (never exported) -->
@@ -349,6 +367,43 @@
       </section>
 
       <section>
+        <h2>Build-your-own pin (D)</h2>
+        <p class="hint-p">A blank canvas: your background image plus a headline, subheadline, and button.</p>
+        <label>Headline <span class="hint">(line breaks kept)</span></label>
+        <textarea rows="2" v-model="d.headline"></textarea>
+        <label>Highlight word <span class="hint">(shown in your accent color)</span></label>
+        <input type="text" v-model="d.highlight">
+        <label>Subheadline</label>
+        <textarea rows="2" v-model="d.subhead"></textarea>
+        <label>Button text</label>
+        <input type="text" v-model="d.cta">
+        <label>Background image <span class="hint">(your own — sits behind the pin)</span></label>
+        <div class="file-row">
+          <img v-if="book.bgD" class="bg-thumb" :src="book.bgD" alt="">
+          <input type="file" accept="image/*" @change="onFile($event, setBgD)">
+        </div>
+        <template v-if="book.bgD">
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn-sticker btn-small btn-ghost" @click="clearBgD">Remove background</button>
+          </div>
+          <label>Text readability <span class="hint">(overlay strength — raise it if text is hard to read)</span></label>
+          <div class="slider-row">
+            <input type="range" min="0" max="0.85" step="0.05" v-model.number="book.bgDScrim">
+            <span class="hint">{{ Math.round(book.bgDScrim * 100) }}%</span>
+          </div>
+        </template>
+      </section>
+
+      <section>
+        <h2>Paper-strips pin (F)</h2>
+        <p class="hint-p">Each line becomes its own torn notebook-paper strip in handwritten marker. Keep each line short so it fits on one strip. The strips sit on a simple color (change it via the design controls, scoped to Paper Strips) — or upload your own photo as the "Pin background image" (Design &amp; style) and tick <b>Paper Strips</b>.</p>
+        <label>Strip lines <span class="hint">(one strip per line)</span></label>
+        <textarea rows="5" v-model="f.stripsText"></textarea>
+        <label>Listicle title <span class="hint">(powers the Pinterest copy — not shown on the pin)</span></label>
+        <input type="text" v-model="f.title">
+      </section>
+
+      <section>
         <h2>Reader hooks</h2>
         <label>One per line <span class="hint">(used on the reader pin and tall pins)</span></label>
         <textarea rows="4" v-model="hooksText"></textarea>
@@ -397,6 +452,8 @@
           <option value="a">Spotlight only</option>
           <option value="b">Quote only</option>
           <option value="c">Reader only</option>
+          <option value="d">Build Your Own only</option>
+          <option value="f">Paper Strips only</option>
         </select>
         <div class="import-msg" v-if="scope !== 'all'">Editing {{ scopeName[scope] }} — these changes apply only to this template.</div>
         <div class="btn-row" style="margin-top:8px">
@@ -442,6 +499,7 @@
             <label><input type="checkbox" v-model="book.bgOn.a"> Spotlight</label>
             <label><input type="checkbox" v-model="book.bgOn.b"> Quote</label>
             <label><input type="checkbox" v-model="book.bgOn.c"> Reader</label>
+            <label><input type="checkbox" v-model="book.bgOn.f"> Paper Strips</label>
           </div>
           <label>Text readability <span class="hint">(overlay strength — raise it if text is hard to read)</span></label>
           <div class="slider-row">
@@ -458,6 +516,8 @@
           <label><input type="checkbox" v-model="output.templates.a"> A — Spotlight</label>
           <label><input type="checkbox" v-model="output.templates.b"> B — Quote</label>
           <label><input type="checkbox" v-model="output.templates.c"> C — Reader</label>
+          <label><input type="checkbox" v-model="output.templates.d"> D — Build Your Own</label>
+          <label><input type="checkbox" v-model="output.templates.f"> F — Paper Strips</label>
         </div>
         <label>Sizes</label>
         <div class="check-row">
@@ -589,6 +649,42 @@
                 <div class="brand-footer" style="margin-top: 36px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
               </div>
 
+              <!-- ============ D standard — Build Your Own ============ -->
+              <div v-if="p.id === '1d'" class="pin std light" :class="pinClass(p)" data-pin="1d" data-name="build-your-own" :style="[pinVars(p), bgStyleD(p)]"
+                   style="padding: 96px 84px 76px; align-items: center; justify-content: center; text-align: center;">
+                <h1 class="headline" style="font-size: 98px; text-align: center;" v-html="fmt(d.headline, d.highlight)"></h1>
+                <p class="subhead" style="font-size: 38px; text-align: center; margin-top: 34px; max-width: 800px;" v-if="d.subhead">{{ d.subhead }}</p>
+                <div class="cta-btn" style="font-size: 46px; padding: 30px 84px; margin-top: 56px;" v-if="d.cta">{{ d.cta }}</div>
+                <div class="brand-footer" style="margin-top: 58px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
+              </div>
+
+              <!-- ============ D tall — Build Your Own ============ -->
+              <div v-if="p.id === '2d'" class="pin tall light" :class="pinClass(p)" data-pin="2d" data-name="build-your-own" :style="[pinVars(p), bgStyleD(p)]"
+                   style="padding: 130px 84px 100px; align-items: center; justify-content: center; text-align: center;">
+                <h1 class="headline" style="font-size: 120px; text-align: center;" v-html="fmt(d.headline, d.highlight)"></h1>
+                <p class="subhead" style="font-size: 44px; text-align: center; margin-top: 44px; max-width: 820px;" v-if="d.subhead">{{ d.subhead }}</p>
+                <div class="cta-btn" style="font-size: 52px; padding: 34px 96px; margin-top: 72px;" v-if="d.cta">{{ d.cta }}</div>
+                <div class="brand-footer" style="margin-top: 74px; font-size: 40px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
+              </div>
+
+              <!-- ============ F standard — Paper Strips ============ -->
+              <div v-if="p.id === '1f'" class="pin std dark" data-pin="1f" data-name="paper-strips"
+                   :style="[pinVars(p), bgStyleF(p)]"
+                   style="padding: 70px 44px;">
+                <div class="strips-wrap" style="gap: 26px;">
+                  <paper-strip v-for="(line, i) in parsedStrips" :key="i" :text="line" :seed="i" size="78px"></paper-strip>
+                </div>
+              </div>
+
+              <!-- ============ F tall — Paper Strips ============ -->
+              <div v-if="p.id === '2f'" class="pin tall dark" data-pin="2f" data-name="paper-strips"
+                   :style="[pinVars(p), bgStyleF(p)]"
+                   style="padding: 96px 44px;">
+                <div class="strips-wrap" style="gap: 34px;">
+                  <paper-strip v-for="(line, i) in parsedStrips" :key="i" :text="line" :seed="i" size="92px"></paper-strip>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -634,14 +730,20 @@
   </div>
 </script>
 
+<!-- A single torn notebook-paper strip with handwritten marker text -->
+<script type="text/x-template" id="strip-tpl">
+  <div class="paper-strip" :style="{ backgroundImage: paper, padding: pad, transform: 'rotate(' + rot + 'deg)' }">
+    <div class="strip-text" :style="{ fontSize: size }">{{ text }}</div>
+  </div>
+</script>
+
 <script>
 /*__VUE_JS__*/
 </script>
 
 <script>
 const LOGO_DEFAULT = '__LOGO_DATA__';
-const COVER_DEFAULT = '__COVER_DATA__';
-// The owner's book setup, baked in at build time (null = built-in sample book).
+const COVER_DEFAULT = '__COVER_DATA__';// The owner's book setup, baked in at build time (null = built-in sample book).
 // First-time visitors and "Reset" both land on this.
 const DEFAULT_KIT = /*__DEFAULT_KIT__*/null;
 
@@ -684,7 +786,7 @@ function defaultBrand() {
 }
 // Per-template overrides: each design (a/b/c) holds only the fields it changes;
 // anything absent inherits from the shared `brand` (see resolvedFor).
-function defaultOverrides() { return { a: {}, b: {}, c: {} }; }
+function defaultOverrides() { return { a: {}, b: {}, c: {}, d: {}, e: {}, f: {} }; }
 function defaultBook() {
   return {
     title: 'The Midnight\nLighthouse',
@@ -695,7 +797,10 @@ function defaultBook() {
     mockup: '3d',
     bg: '',                          // custom pin background image (data URL; '' = none)
     bgScrim: 0.5,                    // readability overlay strength, 0–0.85
-    bgOn: { a: true, b: true, c: true }, // which designs use the bg (a=Spotlight, b=Quote, c=Reader)
+    // Which designs use the bg; f (Paper Strips) defaults on — its default is a plain color.
+    bgOn: { a: true, b: true, c: true, f: true },
+    bgD: '',                         // Build-Your-Own (d) background image (data URL; '' = none)
+    bgDScrim: 0.35,                  // Build-Your-Own readability overlay strength, 0–0.85
   };
 }
 
@@ -721,10 +826,25 @@ const app = createApp({
       corner: 'OUT NOW',
       cta: 'Start reading today →',
     });
+    // d — Build Your Own: a blank canvas over the user's uploaded background
+    const d = reactive({
+      headline: 'Build your\nown pin',
+      highlight: 'own',
+      subhead: 'Upload a background, add your words, and download a Pinterest-ready pin.',
+      cta: 'Get the book →',
+    });
+    // e — retired In Hand template; kept as an empty stub so older saved
+    // kits that still carry `e` fields load without errors.
+    const e = reactive({});
+    // f — Paper Strips: torn-paper list pin; each line becomes one strip
+    const f = reactive({
+      title: 'The book everyone keeps recommending',
+      stripsText: 'A story you\nwon’t put down\nuntil the\nvery last page',
+    });
     const state = reactive({
       hooksText: 'Small-town secrets & slow-burn romance\nA mystery 40 years in the making\nPerfect for fans of Kristin Hannah',
       avail: { amazon: true, line: 'Paperback · Kindle · Kindle Unlimited' },
-      output: { templates: { a: true, b: true, c: true }, sizes: { std: true, tall: false } },
+      output: { templates: { a: true, b: true, c: true, d: true, f: true }, sizes: { std: true, tall: false } },
       exporting: false, copied: '',
       importMsg: '',
       undoColors: null, // palette snapshot from before the last "re-match colors"
@@ -733,6 +853,8 @@ const app = createApp({
     });
 
     const hooks = computed(() => state.hooksText.split('\n').map(s => s.trim()).filter(Boolean));
+    // Paper Strips (f): one torn strip per non-empty line
+    const parsedStrips = computed(() => f.stripsText.split('\n').map(s => s.trim()).filter(Boolean));
 
     // Preview scale: 0.32 on desktop, shrinking so a 1000px-wide pin always
     // fits the viewport on phones/tablets (16px main padding + border each side)
@@ -859,7 +981,33 @@ const app = createApp({
         genre ? clipWords(`${genreT} Books to Read`, 50) : 'Books to Read Next'
       );
 
-      return { a: packA, b: packB, c: packC };
+      // D — build-your-own pin: a generic promo built from the user's own words
+      const dHead = deShout(d.headline);
+      const packD = mk(
+        `${sentence(dHead)}${dHead && title ? ' — ' + title : (title ? title : '')}${author ? ' by ' + author : ''}`.trim() || `${title} by ${author}`,
+        `${endStop(sentence(dHead))} ${endStop(firstSentence(d.subhead))}` +
+        (reader ? ` ${endStop(sentence(`perfect for ${reader}`))}` : '') + alsoLine +
+        (linkHost ? ` Save this pin, then find ${title} at ${linkHost}.` : ' Save this pin to your reading list.'),
+        `Pinterest pin with the headline "${flatTxt(d.headline)}"${d.subhead ? ', ' + clipWords(d.subhead, 90) : ''} and a button reading "${noArrow(d.cta)}", promoting ${title} by ${author}.`,
+        genre ? clipWords(`${genreT} Books`, 50) : 'Books to Read'
+      );
+
+      // F — paper-strips pin: torn-paper listicle, strip lines woven into copy
+      const strips = parsedStrips.value;
+      const stripsPhrase = strips.length ? flatTxt(strips.join(' ')) : '';
+      const fTitle = flatTxt(f.title) || stripsPhrase || `${title} by ${author}`;
+      const packF = mk(
+        `${tc(clipWords(fTitle, 80))}`,
+        `${endStop(sentence(fTitle))}` +
+        (stripsPhrase && stripsPhrase.toLowerCase() !== fTitle.toLowerCase() ? ` ${endStop(sentence(stripsPhrase))}` : '') +
+        ` ${endStop(sentence(`${title} by ${author} belongs on the list`))}` +
+        (reader ? ` ${endStop(sentence(`one for ${reader}`))}` : '') + alsoLine +
+        (linkHost ? ` Save it and find it at ${linkHost}.` : ' Save it to your reading list.'),
+        `Pinterest pin of torn notebook-paper strips with handwritten marker text reading "${clipWords(stripsPhrase || fTitle, 120)}" over a wooden desk with old books.`,
+        genre ? clipWords(`${genreT} Books to Read`, 50) : 'Books to Read Next'
+      );
+
+      return { a: packA, b: packB, c: packC, d: packD, f: packF };
     });
 
     const packFields = [
@@ -883,7 +1031,7 @@ const app = createApp({
       clearTimeout(copyTimer);
       copyTimer = setTimeout(() => { state.copied = ''; }, 1600);
     }
-    const PACK_NAMES = { a: 'SPOTLIGHT PIN (A)', b: 'QUOTE PIN (B)', c: 'READER PIN (C)' };
+    const PACK_NAMES = { a: 'SPOTLIGHT PIN (A)', b: 'QUOTE PIN (B)', c: 'READER PIN (C)', d: 'BUILD-YOUR-OWN PIN (D)', f: 'PAPER-STRIPS PIN (F)' };
     function packText(t) {
       const k = packs.value[t];
       return `Title: ${k.title}\nDescription: ${k.description}\nAlt text: ${k.alt}\nBoard: ${k.board}\nLink: ${k.link}`;
@@ -959,7 +1107,7 @@ const app = createApp({
 
     // ----- design-controls scope: edit "all templates" (brand) or one design -----
     const scope = ref('all'); // 'all' | 'a' | 'b' | 'c'
-    const scopeName = { all: 'all templates', a: 'Spotlight', b: 'Quote', c: 'Reader' };
+    const scopeName = { all: 'all templates', a: 'Spotlight', b: 'Quote', c: 'Reader', d: 'Build Your Own', f: 'Paper Strips' };
     const curColors = computed(() => scope.value === 'all' ? brand.colors : resolvedFor(scope.value).colors);
     function setColor(key, v) { if (scope.value === 'all') brand.colors[key] = v; else (overrides[scope.value].colors ||= {})[key] = v; }
     const curStyle = computed(() => scope.value === 'all' ? brand.style : (overrides[scope.value].style ?? brand.style));
@@ -975,11 +1123,38 @@ const app = createApp({
     function bgStyle(p) {
       const letter = p.id.slice(1);                 // '1a' -> 'a'
       if (!book.bg || !book.bgOn[letter]) return null;
-      const base = letter === 'b' ? brand.colors.board : brand.colors.canvas; // Quote pin is dark
+      const base = (letter === 'b' || letter === 'f') ? brand.colors.board : brand.colors.canvas; // dark pins get a dark scrim
       const [r, g, b] = chan(base);
       const scrim = `rgba(${r},${g},${b},${book.bgScrim})`;
       return {
         backgroundImage: `linear-gradient(${scrim}, ${scrim}), url(${book.bg})`,
+        backgroundSize: 'cover, cover',
+        backgroundPosition: 'center, center',
+      };
+    }
+
+    // Paper Strips (f) background: the user's uploaded photo when enabled (via
+    // the shared bgStyle scrim path), otherwise a simple two-tone color wash
+    // built from the design's board color — the strips are the star, the
+    // background just has to stay quiet. Recolorable via the F design scope.
+    function bgStyleF(p) {
+      const user = bgStyle(p);
+      if (user) return user;
+      const c = resolvedFor('f').colors;
+      return { backgroundImage: `linear-gradient(160deg, ${mix(c.board, '#FFFFFF', 0.88)}, ${c.board} 55%, ${mix(c.board, '#000000', 0.85)})` };
+    }
+
+    // Build-Your-Own (d) background. Its own uploaded image + light scrim so the
+    // dark ink text stays readable; with no image, a soft two-tone canvas tint.
+    function bgStyleD(p) {
+      const c = resolvedFor('d').colors;
+      if (!book.bgD) {
+        return { backgroundImage: `linear-gradient(150deg, ${c.canvas}, ${mix(c.canvas, c.gold, 0.82)})` };
+      }
+      const [r, g, b] = chan(c.canvas);
+      const scrim = `rgba(${r},${g},${b},${book.bgDScrim})`;
+      return {
+        backgroundImage: `linear-gradient(${scrim}, ${scrim}), url(${book.bgD})`,
         backgroundSize: 'cover, cover',
         backgroundPosition: 'center, center',
       };
@@ -1016,12 +1191,12 @@ const app = createApp({
       if (link.href !== url) link.href = url;
     });
 
-    const NAMES = { a: 'spotlight pin', b: 'quote pin', c: 'reader pin' };
+    const NAMES = { a: 'spotlight pin', b: 'quote pin', c: 'reader pin', d: 'build-your-own pin', f: 'paper-strips pin' };
     const activePins = computed(() => {
       const pins = [];
       for (const [sizeKey, row] of [['std', '1'], ['tall', '2']]) {
         if (!state.output.sizes[sizeKey]) continue;
-        for (const t of ['a', 'b', 'c']) {
+        for (const t of ['a', 'b', 'c', 'd', 'f']) {
           if (!state.output.templates[t]) continue;
           pins.push({ id: row + t, name: NAMES[t], w: 1000, h: sizeKey === 'std' ? 1500 : 2100 });
         }
@@ -1200,6 +1375,24 @@ const app = createApp({
     }
     function clearPinBg() { book.bg = ''; }
 
+    // Build-Your-Own (d) background — same downscale + IDB path as the shared bg.
+    async function setBgD(dataUrl) {
+      try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+        const MAX = 1400;
+        if (img.naturalHeight > MAX || img.naturalWidth > MAX) {
+          const k = MAX / Math.max(img.naturalWidth, img.naturalHeight);
+          const cv = document.createElement('canvas');
+          cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+          const cx = cv.getContext('2d');
+          cx.drawImage(img, 0, 0, cv.width, cv.height);
+          dataUrl = cv.toDataURL('image/jpeg', 0.92);
+        }
+      } catch {}
+      book.bgD = dataUrl;
+    }
+    function clearBgD() { book.bgD = ''; }
+
     // ----- persistence: text/settings -> localStorage, images -> IndexedDB -----
     // localStorage has a ~5MB cap, too small for a cover + a background image, so
     // the heavy images live in IndexedDB (bigger quota, still device-local, no
@@ -1223,25 +1416,31 @@ const app = createApp({
       version: 1, app: 'pinterest-studio-authors',
       book: { ...book }, colors: { ...brand.colors }, fonts: { ...brand.fonts }, style: brand.style,
       overrides: JSON.parse(JSON.stringify(overrides)),
-      a: { ...a }, b: { ...b }, c: { ...c },
+      a: { ...a }, b: { ...b }, c: { ...c }, d: { ...d }, e: { ...e }, f: { ...f },
       hooksText: state.hooksText, avail: { ...state.avail },
       seo: { ...seo },
     });
     function applyKit(k) {
       if (!k || k.version !== 1 || !k.colors || !k.book) throw new Error('not a Pinterest Studio for Authors book kit');
-      const { cover, bg, ...bookRest } = k.book;
+      const { cover, bg, bgD, ...bookRest } = k.book;
       Object.assign(book, bookRest);
+      // Older kits saved bgOn as {a,b,c} — top up any missing per-design keys.
+      book.bgOn = { ...defaultBook().bgOn, ...(book.bgOn || {}) };
       // '@idb' is a marker that the real image lives in IndexedDB — don't let it
       // clobber the in-memory image; the async hydrate step fills it in.
       if (cover && cover !== '@idb') book.cover = cover;
-      if (bg !== undefined && bg !== '@idb') book.bg = bg; // '' still clears
+      if (bg !== undefined && bg !== '@idb') book.bg = bg;   // '' still clears
+      if (bgD !== undefined && bgD !== '@idb') book.bgD = bgD; // '' still clears
       Object.assign(brand.colors, k.colors);
       if (k.fonts) Object.assign(brand.fonts, k.fonts);
       if (k.style) brand.style = k.style;
-      if (k.overrides) { overrides.a = k.overrides.a || {}; overrides.b = k.overrides.b || {}; overrides.c = k.overrides.c || {}; }
+      if (k.overrides) { for (const t of ['a', 'b', 'c', 'd', 'e', 'f']) overrides[t] = k.overrides[t] || {}; }
       if (k.a) Object.assign(a, k.a);
       if (k.b) Object.assign(b, k.b);
       if (k.c) Object.assign(c, k.c);
+      if (k.d) Object.assign(d, k.d);
+      if (k.e) Object.assign(e, k.e);
+      if (k.f) Object.assign(f, k.f);
       if (k.hooksText) state.hooksText = k.hooksText;
       if (k.avail) Object.assign(state.avail, k.avail);
       if (k.seo) Object.assign(seo, k.seo);
@@ -1250,14 +1449,14 @@ const app = createApp({
     function resetAll() {
       resetting = true;
       Object.assign(brand, defaultBrand());
-      overrides.a = {}; overrides.b = {}; overrides.c = {};
+      Object.assign(overrides, defaultOverrides());
       Object.assign(book, defaultBook());
       Object.assign(seo, SEO_DEFAULTS);
       if (DEFAULT_KIT) { try { applyKit(DEFAULT_KIT); } catch {} }
       state.importMsg = '';
       state.showExampleNote = true; // reset restores the example content
       try { localStorage.removeItem('pinauthors.kit.v1'); } catch {}
-      if (IDB_OK) { idbDel('cover').catch(() => {}); idbDel('bg').catch(() => {}); }
+      if (IDB_OK) { idbDel('cover').catch(() => {}); idbDel('bg').catch(() => {}); idbDel('bgD').catch(() => {}); }
     }
     // Lean localStorage writer: everything but the image data URLs (those go to
     // IndexedDB). When IndexedDB is unavailable, fall back to embedding images
@@ -1267,7 +1466,8 @@ const app = createApp({
       const kit = bookKit();
       const lean = { ...kit, book: { ...kit.book,
         cover: book.cover ? (IDB_OK ? '@idb' : book.cover) : '',
-        bg:    book.bg    ? (IDB_OK ? '@idb' : book.bg)    : '' } };
+        bg:    book.bg    ? (IDB_OK ? '@idb' : book.bg)    : '',
+        bgD:   book.bgD   ? (IDB_OK ? '@idb' : book.bgD)   : '' } };
       try { localStorage.setItem(KIT_KEY, JSON.stringify(lean)); }
       catch { try { localStorage.setItem(KIT_KEY, JSON.stringify({ ...lean, book: { ...lean.book, cover: '', bg: '' } })); } catch {} }
     }
@@ -1290,6 +1490,7 @@ const app = createApp({
     if (IDB_OK) {                          // images -> IndexedDB, only when they change
       watch(() => book.cover, v => { if (ready && v && v !== '@idb') idbSet('cover', v).catch(() => {}); });
       watch(() => book.bg,    v => { if (!ready) return; (v && v !== '@idb' ? idbSet('bg', v) : idbDel('bg')).catch(() => {}); });
+      watch(() => book.bgD,   v => { if (!ready) return; (v && v !== '@idb' ? idbSet('bgD', v) : idbDel('bgD')).catch(() => {}); });
     }
 
     // Async: one-time migration of old localStorage-embedded images into IDB,
@@ -1299,8 +1500,10 @@ const app = createApp({
         const isData = s => typeof s === 'string' && s.startsWith('data:');
         if (isData(leanSaved.book?.cover)) { try { await idbSet('cover', leanSaved.book.cover); } catch {} }
         if (isData(leanSaved.book?.bg))    { try { await idbSet('bg', leanSaved.book.bg); } catch {} }
+        if (isData(leanSaved.book?.bgD))   { try { await idbSet('bgD', leanSaved.book.bgD); } catch {} }
         if (leanSaved.book?.cover === '@idb') { try { const c = await idbGet('cover'); if (c) book.cover = c; } catch {} }
         if (leanSaved.book?.bg === '@idb')    { try { const g = await idbGet('bg');    if (g) book.bg = g;    } catch {} }
+        if (leanSaved.book?.bgD === '@idb')   { try { const gd = await idbGet('bgD');  if (gd) book.bgD = gd; } catch {} }
       }
       ready = true;
       if (IDB_OK && leanSaved) saveLocal(); // rewrite localStorage in lean form
@@ -1399,7 +1602,8 @@ const app = createApp({
     const rw = (key) => computed({ get: () => state[key], set: v => state[key] = v });
     return {
       LOGO: LOGO_DEFAULT,
-      brand, book, a, b, c,
+      brand, book, a, b, c, d, e, f,
+      parsedStrips,
       hooksText: rw('hooksText'),
       avail: state.avail, output: state.output,
       exporting: computed(() => state.exporting),
@@ -1413,7 +1617,8 @@ const app = createApp({
       copied: computed(() => state.copied),
       copyText, copyPack, copyAllPacks,
       fmt, quoteSize, onFile, setCover, extractFromCover,
-      bgStyle, setPinBg, clearPinBg,
+      bgStyle, bgStyleF, setPinBg, clearPinBg,
+      bgStyleD, setBgD, clearBgD,
       undoRematch, canUndoRematch: computed(() => !!state.undoColors),
       downloadOne, downloadAll, resetAll,
     };
@@ -1590,6 +1795,48 @@ async function renderBookArt(coverUrl, mode) {
   bookArtCache.set(cacheKey, url);
   return url;
 }
+
+// ---- torn notebook-paper strip (Paper Strips template) ----
+// One reusable SVG per seed: a jagged white paper shape with faint ruled lines
+// and a soft baked-in drop shadow, stretched to the strip's box via
+// background-size:100% 100%. Baking the shadow into the SVG (rather than a CSS
+// filter) keeps it torn-shaped and makes it survive the PNG export path.
+const tornCache = new Map();
+function tornPaperUrl(seed) {
+  if (tornCache.has(seed)) return tornCache.get(seed);
+  let s = (seed * 9301 + 49297) % 233280;
+  const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  const W = 340, H = 150, n = 26, mL = 14, mR = W - 14, top0 = 12, bot0 = H - 26;
+  const pts = [];
+  for (let i = 0; i <= n; i++) pts.push([mL + (mR - mL) * i / n, top0 + rnd() * 12]);
+  let dpath = 'M ' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+  for (let i = 1; i <= n; i++) dpath += ' L ' + pts[i][0].toFixed(1) + ' ' + pts[i][1].toFixed(1);
+  for (let i = n; i >= 0; i--) dpath += ' L ' + (mL + (mR - mL) * i / n).toFixed(1) + ' ' + (bot0 - rnd() * 12).toFixed(1);
+  dpath += ' Z';
+  let lines = '';
+  for (let y = top0 + 30; y < bot0 - 6; y += 30) lines += `<line x1="${mL + 6}" y1="${y}" x2="${mR - 6}" y2="${y}" stroke="#b3c2d1" stroke-width="1.6"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">` +
+    `<defs><filter id="s" x="-15%" y="-15%" width="135%" height="150%"><feDropShadow dx="4" dy="8" stdDeviation="7" flood-color="#000" flood-opacity="0.5"/></filter></defs>` +
+    `<path d="${dpath}" fill="#fbfaf5" filter="url(#s)"/>${lines}</svg>`;
+  const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  tornCache.set(seed, url);
+  return url;
+}
+app.component('paper-strip', {
+  template: '#strip-tpl',
+  props: {
+    text: { type: String, default: '' },
+    seed: { type: Number, default: 0 },
+    size: { type: String, default: '72px' },
+    pad: { type: String, default: '30px 56px 44px' },
+  },
+  computed: {
+    // Quote the data URL — the torn-paper SVG contains a filter="url(#s)"
+    // reference whose parentheses would otherwise close the CSS url() early.
+    paper() { return 'url("' + tornPaperUrl(this.seed % 6) + '")'; },
+    rot() { return [-1.4, 0.9, -0.7, 1.3, -1.1, 0.6][this.seed % 6]; },
+  },
+});
 
 app.component('book-3d', {
   template: '#book3d-tpl',
