@@ -391,24 +391,33 @@
 
       <section>
         <h2>Design</h2>
-        <div class="btn-row">
+        <label>Editing <span class="hint">(colors &amp; style below apply to your choice)</span></label>
+        <select v-model="scope">
+          <option value="all">All templates</option>
+          <option value="a">Spotlight only</option>
+          <option value="b">Quote only</option>
+          <option value="c">Reader only</option>
+        </select>
+        <div class="import-msg" v-if="scope !== 'all'">Editing {{ scopeName[scope] }} — these changes apply only to this template.</div>
+        <div class="btn-row" style="margin-top:8px">
           <button class="btn-sticker btn-small btn-ghost" @click="extractFromCover(true)">Re-match colors to cover</button>
           <button class="btn-sticker btn-small btn-ghost" v-if="canUndoRematch" @click="undoRematch" title="Put the colors back the way they were before the last re-match">Undo re-match</button>
+          <button class="btn-sticker btn-small btn-ghost" v-if="scopeOverridden" @click="resetScope" title="Clear this template's custom colors and style so it inherits the shared look again">↺ Reset {{ scopeName[scope] }} to shared</button>
         </div>
         <label>Colors <span class="hint">(tap a square to change it)</span></label>
         <div class="color-grid">
-          <div class="swatch" title="The pin's base background color"><input type="color" v-model="brand.colors.canvas"> Background</div>
-          <div class="swatch" title="Headlines and body text"><input type="color" v-model="brand.colors.ink"> Text</div>
-          <div class="swatch" title="Highlight words and buttons"><input type="color" v-model="brand.colors.accent"> Accent / buttons</div>
-          <div class="swatch" title="The decorative badge strips"><input type="color" v-model="brand.colors.gold"> Badge accent</div>
-          <div class="swatch" title="Background of the dark quote pin"><input type="color" v-model="brand.colors.board"> Dark pin background</div>
+          <div class="swatch" title="The pin's base background color"><input type="color" :value="curColors.canvas" @input="setColor('canvas', $event.target.value)"> Background</div>
+          <div class="swatch" title="Headlines and body text"><input type="color" :value="curColors.ink" @input="setColor('ink', $event.target.value)"> Text</div>
+          <div class="swatch" title="Highlight words and buttons"><input type="color" :value="curColors.accent" @input="setColor('accent', $event.target.value)"> Accent / buttons</div>
+          <div class="swatch" title="The decorative badge strips"><input type="color" :value="curColors.gold" @input="setColor('gold', $event.target.value)"> Badge accent</div>
+          <div class="swatch" title="Background of the dark quote pin"><input type="color" :value="curColors.board" @input="setColor('board', $event.target.value)"> Dark pin background</div>
         </div>
-        <label>Fonts</label>
+        <label>Fonts <span class="hint">(applies to all templates)</span></label>
         <select v-model="fontPairId">
           <option v-for="fp in fontPairs" :value="fp.id">{{ fp.label }}</option>
         </select>
         <label>Style</label>
-        <select v-model="brand.style">
+        <select :value="curStyle" @change="setStyle($event.target.value)">
           <option value="soft">Elegant — soft shadows &amp; rounded</option>
           <option value="clean">Modern — flat &amp; minimal</option>
           <option value="workshop">Handmade — paper grain &amp; taped-on labels</option>
@@ -487,7 +496,7 @@
             <div class="pin-scale" :style="{ transform: 'scale(' + pinScale + ')' }">
 
               <!-- ============ A standard — Spotlight ============ -->
-              <div v-if="p.id === '1a'" class="pin std light" :class="pinClass" data-pin="1a" data-name="spotlight" :style="[pinVars, bgStyle(p)]"
+              <div v-if="p.id === '1a'" class="pin std light" :class="pinClass(p)" data-pin="1a" data-name="spotlight" :style="[pinVars(p), bgStyle(p)]"
                    style="padding: 54px 80px 44px; align-items: center;">
                 <div class="tape-badge" style="font-size: 30px; padding: 13px 38px;">{{ a.badge }}</div>
                 <h1 class="headline" style="font-size: 80px; text-align: center; margin-top: 30px;" v-html="fmt(book.title, book.highlight)"></h1>
@@ -500,7 +509,7 @@
               </div>
 
               <!-- ============ A tall — Spotlight ============ -->
-              <div v-if="p.id === '2a'" class="pin tall light" :class="pinClass" data-pin="2a" data-name="spotlight" :style="[pinVars, bgStyle(p)]"
+              <div v-if="p.id === '2a'" class="pin tall light" :class="pinClass(p)" data-pin="2a" data-name="spotlight" :style="[pinVars(p), bgStyle(p)]"
                    style="padding: 90px 80px 60px; align-items: center;">
                 <div class="tape-badge" style="font-size: 32px; padding: 15px 42px;">{{ a.badge }}</div>
                 <h1 class="headline" style="font-size: 94px; text-align: center; margin-top: 48px;" v-html="fmt(book.title, book.highlight)"></h1>
@@ -516,7 +525,7 @@
               </div>
 
               <!-- ============ B standard — Quote ============ -->
-              <div v-if="p.id === '1b'" class="pin std dark" data-pin="1b" data-name="quote" :style="[pinVars, bgStyle(p)]"
+              <div v-if="p.id === '1b'" class="pin std dark" data-pin="1b" data-name="quote" :style="[pinVars(p), bgStyle(p)]"
                    style="padding: 60px 84px 46px; align-items: center;">
                 <div class="stars">{{ '★'.repeat(b.stars) }}</div>
                 <div class="quote-mark" style="margin-top: 42px;">“</div>
@@ -530,7 +539,7 @@
               </div>
 
               <!-- ============ B tall — Quote ============ -->
-              <div v-if="p.id === '2b'" class="pin tall dark" data-pin="2b" data-name="quote" :style="[pinVars, bgStyle(p)]"
+              <div v-if="p.id === '2b'" class="pin tall dark" data-pin="2b" data-name="quote" :style="[pinVars(p), bgStyle(p)]"
                    style="padding: 96px 84px 64px; align-items: center;">
                 <div class="stars">{{ '★'.repeat(b.stars) }}</div>
                 <div class="quote-mark" style="margin-top: 44px;">“</div>
@@ -547,7 +556,7 @@
               </div>
 
               <!-- ============ C standard — Reader ============ -->
-              <div v-if="p.id === '1c'" class="pin std light" :class="pinClass" data-pin="1c" data-name="reader" :style="[pinVars, bgStyle(p)]"
+              <div v-if="p.id === '1c'" class="pin std light" :class="pinClass(p)" data-pin="1c" data-name="reader" :style="[pinVars(p), bgStyle(p)]"
                    style="padding: 60px 76px 44px; align-items: center;">
                 <h1 class="headline" style="font-size: 76px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
                 <div style="position: relative; width: 360px; margin-top: 54px;">
@@ -563,7 +572,7 @@
               </div>
 
               <!-- ============ C tall — Reader ============ -->
-              <div v-if="p.id === '2c'" class="pin tall light" :class="pinClass" data-pin="2c" data-name="reader" :style="[pinVars, bgStyle(p)]"
+              <div v-if="p.id === '2c'" class="pin tall light" :class="pinClass(p)" data-pin="2c" data-name="reader" :style="[pinVars(p), bgStyle(p)]"
                    style="padding: 96px 76px 60px; align-items: center;">
                 <h1 class="headline" style="font-size: 86px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
                 <div style="position: relative; width: 470px; margin-top: 78px;">
@@ -636,7 +645,7 @@ const COVER_DEFAULT = '__COVER_DATA__';
 // First-time visitors and "Reset" both land on this.
 const DEFAULT_KIT = /*__DEFAULT_KIT__*/null;
 
-const { createApp, reactive, computed, watch, watchEffect } = Vue;
+const { createApp, ref, reactive, computed, watch, watchEffect } = Vue;
 
 // Curated Google Fonts pairings, serif-first for book covers. Inter is embedded
 // in this file (works offline); the rest load from Google Fonts for preview and
@@ -673,6 +682,9 @@ function defaultBrand() {
     style: 'soft',
   };
 }
+// Per-template overrides: each design (a/b/c) holds only the fields it changes;
+// anything absent inherits from the shared `brand` (see resolvedFor).
+function defaultOverrides() { return { a: {}, b: {}, c: {} }; }
 function defaultBook() {
   return {
     title: 'The Midnight\nLighthouse',
@@ -690,6 +702,7 @@ function defaultBook() {
 const app = createApp({
   setup() {
     const brand = reactive(defaultBrand());
+    const overrides = reactive(defaultOverrides());
     const book = reactive(defaultBook());
     const a = reactive({
       badge: 'NEW RELEASE',
@@ -914,21 +927,45 @@ const app = createApp({
       };
     }
 
-    const pinVars = computed(() => ({
-      '--canvas': brand.colors.canvas,
-      '--ink': brand.colors.ink,
-      '--accent': brand.colors.accent,
-      '--gold': brand.colors.gold,
-      '--board': brand.colors.board,
-      '--muted': mix(brand.colors.ink, brand.colors.canvas, 0.82),
-      '--cream': brand.colors.canvas,
-      '--font-display': brand.fonts.display === 'Inter' ? "'Inter'" : `'${brand.fonts.display}', 'Inter'`,
-      '--font-body': brand.fonts.body === 'Inter' ? "'Inter'" : `'${brand.fonts.body}', 'Inter'`,
-      '--display-tracking': brand.fonts.tracking || '-0.02em',
-      ...styleVars(brand.style, brand.colors),
-    }));
+    // Resolve a design's effective look: its per-template overrides win field by
+    // field, otherwise inherit the shared brand. Fonts stay global for now.
+    function resolvedFor(letter) {
+      const o = overrides[letter] || {};
+      return {
+        colors: { ...brand.colors, ...(o.colors || {}) },
+        style: o.style ?? brand.style,
+        fonts: brand.fonts,
+      };
+    }
 
-    const pinClass = computed(() => ({ textured: TEXTURED[brand.style] !== false }));
+    function pinVars(p) {
+      const r = resolvedFor(p.id.slice(1));
+      return {
+        '--canvas': r.colors.canvas,
+        '--ink': r.colors.ink,
+        '--accent': r.colors.accent,
+        '--gold': r.colors.gold,
+        '--board': r.colors.board,
+        '--muted': mix(r.colors.ink, r.colors.canvas, 0.82),
+        '--cream': r.colors.canvas,
+        '--font-display': r.fonts.display === 'Inter' ? "'Inter'" : `'${r.fonts.display}', 'Inter'`,
+        '--font-body': r.fonts.body === 'Inter' ? "'Inter'" : `'${r.fonts.body}', 'Inter'`,
+        '--display-tracking': r.fonts.tracking || '-0.02em',
+        ...styleVars(r.style, r.colors),
+      };
+    }
+
+    function pinClass(p) { return { textured: TEXTURED[resolvedFor(p.id.slice(1)).style] !== false }; }
+
+    // ----- design-controls scope: edit "all templates" (brand) or one design -----
+    const scope = ref('all'); // 'all' | 'a' | 'b' | 'c'
+    const scopeName = { all: 'all templates', a: 'Spotlight', b: 'Quote', c: 'Reader' };
+    const curColors = computed(() => scope.value === 'all' ? brand.colors : resolvedFor(scope.value).colors);
+    function setColor(key, v) { if (scope.value === 'all') brand.colors[key] = v; else (overrides[scope.value].colors ||= {})[key] = v; }
+    const curStyle = computed(() => scope.value === 'all' ? brand.style : (overrides[scope.value].style ?? brand.style));
+    function setStyle(v) { if (scope.value === 'all') brand.style = v; else overrides[scope.value].style = v; }
+    const scopeOverridden = computed(() => scope.value !== 'all' && ((Object.keys(overrides[scope.value].colors || {}).length > 0) || overrides[scope.value].style !== undefined));
+    function resetScope() { if (scope.value !== 'all') overrides[scope.value] = {}; }
 
     // Per-pin custom background image. Returns an inline style that layers a
     // color-tinted scrim (a flat linear-gradient) over the uploaded photo, or
@@ -1098,20 +1135,30 @@ const app = createApp({
     // `offerUndo` is true only for the sidebar button — the automatic match on
     // cover upload replaces a palette that belonged to a different cover, so
     // offering to restore it there would just confuse.
+    let undoScope = null;
     async function extractFromCover(offerUndo) {
       try {
         const next = await extractCoverColors(book.cover);
-        state.undoColors = offerUndo === true ? { ...brand.colors } : null;
-        Object.assign(brand.colors, next);
-        state.importMsg = 'Pin colors matched to your cover — adjust any swatch below.';
+        // Manual button re-matches whatever scope you're editing; the automatic
+        // match on cover upload always refreshes the shared base palette.
+        const target = offerUndo === true ? scope.value : 'all';
+        if (offerUndo === true) {
+          undoScope = target;
+          state.undoColors = target === 'all' ? { ...brand.colors } : { ...(overrides[target].colors || {}) };
+        } else { state.undoColors = null; undoScope = null; }
+        if (target === 'all') Object.assign(brand.colors, next);
+        else overrides[target].colors = { ...next };
+        state.importMsg = (target === 'all' ? 'Pin colors' : scopeName[target] + ' colors') + ' matched to your cover — adjust any swatch below.';
       } catch {
         state.importMsg = "Couldn't read the cover image.";
       }
     }
     function undoRematch() {
       if (!state.undoColors) return;
-      Object.assign(brand.colors, state.undoColors);
-      state.undoColors = null;
+      const target = undoScope || 'all';
+      if (target === 'all') Object.assign(brand.colors, state.undoColors);
+      else overrides[target].colors = { ...state.undoColors };
+      state.undoColors = null; undoScope = null;
       state.importMsg = 'Your previous colors are back.';
     }
 
@@ -1175,6 +1222,7 @@ const app = createApp({
     const bookKit = () => ({
       version: 1, app: 'pinterest-studio-authors',
       book: { ...book }, colors: { ...brand.colors }, fonts: { ...brand.fonts }, style: brand.style,
+      overrides: JSON.parse(JSON.stringify(overrides)),
       a: { ...a }, b: { ...b }, c: { ...c },
       hooksText: state.hooksText, avail: { ...state.avail },
       seo: { ...seo },
@@ -1190,6 +1238,7 @@ const app = createApp({
       Object.assign(brand.colors, k.colors);
       if (k.fonts) Object.assign(brand.fonts, k.fonts);
       if (k.style) brand.style = k.style;
+      if (k.overrides) { overrides.a = k.overrides.a || {}; overrides.b = k.overrides.b || {}; overrides.c = k.overrides.c || {}; }
       if (k.a) Object.assign(a, k.a);
       if (k.b) Object.assign(b, k.b);
       if (k.c) Object.assign(c, k.c);
@@ -1201,6 +1250,7 @@ const app = createApp({
     function resetAll() {
       resetting = true;
       Object.assign(brand, defaultBrand());
+      overrides.a = {}; overrides.b = {}; overrides.c = {};
       Object.assign(book, defaultBook());
       Object.assign(seo, SEO_DEFAULTS);
       if (DEFAULT_KIT) { try { applyKit(DEFAULT_KIT); } catch {} }
@@ -1357,6 +1407,8 @@ const app = createApp({
       showExampleNote: rw('showExampleNote'),
       fontPairs: FONT_PAIRS, fontPairId, pinClass,
       hooks, pinVars, activePins, pinScale,
+      scope, scopeName, curColors, setColor, curStyle, setStyle,
+      scopeOverridden, resetScope,
       seo, packFields, packOf, hasLink,
       copied: computed(() => state.copied),
       copyText, copyPack, copyAllPacks,
