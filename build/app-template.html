@@ -395,7 +395,7 @@
       </section>
 
       <section>
-        <h2>Paper-strips pin (F)</h2>
+        <h2>Paper-strips pin (E)</h2>
         <p class="hint-p">Each line becomes its own torn notebook-paper strip in handwritten marker. Keep each line short so it fits on one strip. The strips sit on a simple color (change it via the design controls, scoped to Paper Strips) — or upload your own photo as the "Pin background image" (Design &amp; style) and tick <b>Paper Strips</b>.</p>
         <label>Strip lines <span class="hint">(one strip per line)</span></label>
         <textarea rows="5" v-model="f.stripsText"></textarea>
@@ -517,7 +517,7 @@
           <label><input type="checkbox" v-model="output.templates.b"> B — Quote</label>
           <label><input type="checkbox" v-model="output.templates.c"> C — Reader</label>
           <label><input type="checkbox" v-model="output.templates.d"> D — Build Your Own</label>
-          <label><input type="checkbox" v-model="output.templates.f"> F — Paper Strips</label>
+          <label><input type="checkbox" v-model="output.templates.f"> E — Paper Strips</label>
         </div>
         <label>Sizes</label>
         <div class="check-row">
@@ -1031,7 +1031,7 @@ const app = createApp({
       clearTimeout(copyTimer);
       copyTimer = setTimeout(() => { state.copied = ''; }, 1600);
     }
-    const PACK_NAMES = { a: 'SPOTLIGHT PIN (A)', b: 'QUOTE PIN (B)', c: 'READER PIN (C)', d: 'BUILD-YOUR-OWN PIN (D)', f: 'PAPER-STRIPS PIN (F)' };
+    const PACK_NAMES = { a: 'SPOTLIGHT PIN (A)', b: 'QUOTE PIN (B)', c: 'READER PIN (C)', d: 'BUILD-YOUR-OWN PIN (D)', f: 'PAPER-STRIPS PIN (E)' };
     function packText(t) {
       const k = packs.value[t];
       return `Title: ${k.title}\nDescription: ${k.description}\nAlt text: ${k.alt}\nBoard: ${k.board}\nLink: ${k.link}`;
