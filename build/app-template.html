@@ -186,6 +186,9 @@
   .file-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
   .file-row img.cover-thumb { width: 44px; height: 62px; border-radius: 3px; border: 1.5px solid var(--ui-ink); object-fit: cover; background: var(--ui-paper); }
   .file-row input { font-size: 12px; width: 100%; }
+  .file-row img.bg-thumb { width: 62px; height: 44px; border-radius: 3px; border: 1.5px solid var(--ui-ink); object-fit: cover; background: var(--ui-paper); }
+  .slider-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .slider-row input[type="range"] { flex: 1; accent-color: var(--ui-accent); }
   details.pub { margin-top: 30px; border-top: 1px solid var(--ui-gold); padding-top: 16px; }
   details.pub summary { font-weight: 800; font-size: 14px; cursor: pointer; }
   details.pub ol { margin: 10px 0 0 18px; font-size: 13px; line-height: 1.7; color: var(--ui-muted); }
@@ -416,6 +419,27 @@
           <option value="3d">3D — angled hardcover with pages &amp; shadow</option>
           <option value="flat">Flat — just the cover, straight on</option>
         </select>
+        <label>Pin background image <span class="hint">(optional — sits behind the pin, in place of the plain color)</span></label>
+        <div class="file-row">
+          <img v-if="book.bg" class="bg-thumb" :src="book.bg" alt="">
+          <input type="file" accept="image/*" @change="onFile($event, setPinBg)">
+        </div>
+        <template v-if="book.bg">
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn-sticker btn-small btn-ghost" @click="clearPinBg">Remove background</button>
+          </div>
+          <label>Use it on <span class="hint">(pick which designs)</span></label>
+          <div class="check-row">
+            <label><input type="checkbox" v-model="book.bgOn.a"> Spotlight</label>
+            <label><input type="checkbox" v-model="book.bgOn.b"> Quote</label>
+            <label><input type="checkbox" v-model="book.bgOn.c"> Reader</label>
+          </div>
+          <label>Text readability <span class="hint">(overlay strength — raise it if text is hard to read)</span></label>
+          <div class="slider-row">
+            <input type="range" min="0" max="0.85" step="0.05" v-model.number="book.bgScrim">
+            <span class="hint">{{ Math.round(book.bgScrim * 100) }}%</span>
+          </div>
+        </template>
       </section>
 
       <section>
@@ -463,7 +487,7 @@
             <div class="pin-scale" :style="{ transform: 'scale(' + pinScale + ')' }">
 
               <!-- ============ A standard — Spotlight ============ -->
-              <div v-if="p.id === '1a'" class="pin std light" :class="pinClass" data-pin="1a" data-name="spotlight" :style="pinVars"
+              <div v-if="p.id === '1a'" class="pin std light" :class="pinClass" data-pin="1a" data-name="spotlight" :style="[pinVars, bgStyle(p)]"
                    style="padding: 54px 80px 44px; align-items: center;">
                 <div class="tape-badge" style="font-size: 30px; padding: 13px 38px;">{{ a.badge }}</div>
                 <h1 class="headline" style="font-size: 80px; text-align: center; margin-top: 30px;" v-html="fmt(book.title, book.highlight)"></h1>
@@ -476,7 +500,7 @@
               </div>
 
               <!-- ============ A tall — Spotlight ============ -->
-              <div v-if="p.id === '2a'" class="pin tall light" :class="pinClass" data-pin="2a" data-name="spotlight" :style="pinVars"
+              <div v-if="p.id === '2a'" class="pin tall light" :class="pinClass" data-pin="2a" data-name="spotlight" :style="[pinVars, bgStyle(p)]"
                    style="padding: 90px 80px 60px; align-items: center;">
                 <div class="tape-badge" style="font-size: 32px; padding: 15px 42px;">{{ a.badge }}</div>
                 <h1 class="headline" style="font-size: 94px; text-align: center; margin-top: 48px;" v-html="fmt(book.title, book.highlight)"></h1>
@@ -492,7 +516,7 @@
               </div>
 
               <!-- ============ B standard — Quote ============ -->
-              <div v-if="p.id === '1b'" class="pin std dark" data-pin="1b" data-name="quote" :style="pinVars"
+              <div v-if="p.id === '1b'" class="pin std dark" data-pin="1b" data-name="quote" :style="[pinVars, bgStyle(p)]"
                    style="padding: 60px 84px 46px; align-items: center;">
                 <div class="stars">{{ '★'.repeat(b.stars) }}</div>
                 <div class="quote-mark" style="margin-top: 42px;">“</div>
@@ -506,7 +530,7 @@
               </div>
 
               <!-- ============ B tall — Quote ============ -->
-              <div v-if="p.id === '2b'" class="pin tall dark" data-pin="2b" data-name="quote" :style="pinVars"
+              <div v-if="p.id === '2b'" class="pin tall dark" data-pin="2b" data-name="quote" :style="[pinVars, bgStyle(p)]"
                    style="padding: 96px 84px 64px; align-items: center;">
                 <div class="stars">{{ '★'.repeat(b.stars) }}</div>
                 <div class="quote-mark" style="margin-top: 44px;">“</div>
@@ -523,7 +547,7 @@
               </div>
 
               <!-- ============ C standard — Reader ============ -->
-              <div v-if="p.id === '1c'" class="pin std light" :class="pinClass" data-pin="1c" data-name="reader" :style="pinVars"
+              <div v-if="p.id === '1c'" class="pin std light" :class="pinClass" data-pin="1c" data-name="reader" :style="[pinVars, bgStyle(p)]"
                    style="padding: 60px 76px 44px; align-items: center;">
                 <h1 class="headline" style="font-size: 76px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
                 <div style="position: relative; width: 360px; margin-top: 54px;">
@@ -539,7 +563,7 @@
               </div>
 
               <!-- ============ C tall — Reader ============ -->
-              <div v-if="p.id === '2c'" class="pin tall light" :class="pinClass" data-pin="2c" data-name="reader" :style="pinVars"
+              <div v-if="p.id === '2c'" class="pin tall light" :class="pinClass" data-pin="2c" data-name="reader" :style="[pinVars, bgStyle(p)]"
                    style="padding: 96px 76px 60px; align-items: center;">
                 <h1 class="headline" style="font-size: 86px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
                 <div style="position: relative; width: 470px; margin-top: 78px;">
@@ -657,6 +681,9 @@ function defaultBook() {
     url: 'elenamarsh.com',
     cover: COVER_DEFAULT,
     mockup: '3d',
+    bg: '',                          // custom pin background image (data URL; '' = none)
+    bgScrim: 0.5,                    // readability overlay strength, 0–0.85
+    bgOn: { a: true, b: true, c: true }, // which designs use the bg (a=Spotlight, b=Quote, c=Reader)
   };
 }
 
@@ -903,6 +930,24 @@ const app = createApp({
 
     const pinClass = computed(() => ({ textured: TEXTURED[brand.style] !== false }));
 
+    // Per-pin custom background image. Returns an inline style that layers a
+    // color-tinted scrim (a flat linear-gradient) over the uploaded photo, or
+    // null when this design has no background. The scrim paints above the photo
+    // but below the pin's content, keeping text readable — and because it's a
+    // data-URL background it serializes straight through the SVG/PNG export.
+    function bgStyle(p) {
+      const letter = p.id.slice(1);                 // '1a' -> 'a'
+      if (!book.bg || !book.bgOn[letter]) return null;
+      const base = letter === 'b' ? brand.colors.board : brand.colors.canvas; // Quote pin is dark
+      const [r, g, b] = chan(base);
+      const scrim = `rgba(${r},${g},${b},${book.bgScrim})`;
+      return {
+        backgroundImage: `linear-gradient(${scrim}, ${scrim}), url(${book.bg})`,
+        backgroundSize: 'cover, cover',
+        backgroundPosition: 'center, center',
+      };
+    }
+
     const fontPairId = computed({
       get: () => brand.fonts.pair,
       set: (id) => {
@@ -1089,7 +1134,44 @@ const app = createApp({
       extractFromCover();
     }
 
-    // ----- persistence: everything auto-saves to localStorage -----
+    // Custom pin background image. Downscale to a data URL (like setCover) so it
+    // survives localStorage and the data-URL-only PNG export path.
+    async function setPinBg(dataUrl) {
+      try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+        const MAX = 1400;
+        if (img.naturalHeight > MAX || img.naturalWidth > MAX) {
+          const k = MAX / Math.max(img.naturalWidth, img.naturalHeight);
+          const cv = document.createElement('canvas');
+          cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+          const cx = cv.getContext('2d');
+          cx.drawImage(img, 0, 0, cv.width, cv.height);
+          dataUrl = cv.toDataURL('image/jpeg', 0.92);
+        }
+      } catch {}
+      book.bg = dataUrl;
+    }
+    function clearPinBg() { book.bg = ''; }
+
+    // ----- persistence: text/settings -> localStorage, images -> IndexedDB -----
+    // localStorage has a ~5MB cap, too small for a cover + a background image, so
+    // the heavy images live in IndexedDB (bigger quota, still device-local, no
+    // server). The lean localStorage kit stores a '@idb' marker in each image
+    // slot; the real data URLs are keyed 'cover'/'bg' in the IndexedDB store.
+    const IDB_OK = typeof indexedDB !== 'undefined';
+    const DB_NAME = 'pinauthors', DB_STORE = 'images';
+    function idbOpen() {
+      return new Promise((res, rej) => {
+        const r = indexedDB.open(DB_NAME, 1);
+        r.onupgradeneeded = () => r.result.createObjectStore(DB_STORE);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+    }
+    async function idbSet(k, v) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(DB_STORE, 'readwrite'); tx.objectStore(DB_STORE).put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
+    async function idbGet(k) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(DB_STORE, 'readonly'); const q = tx.objectStore(DB_STORE).get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+    async function idbDel(k) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(DB_STORE, 'readwrite'); tx.objectStore(DB_STORE).delete(k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
+
     const bookKit = () => ({
       version: 1, app: 'pinterest-studio-authors',
       book: { ...book }, colors: { ...brand.colors }, fonts: { ...brand.fonts }, style: brand.style,
@@ -1099,9 +1181,12 @@ const app = createApp({
     });
     function applyKit(k) {
       if (!k || k.version !== 1 || !k.colors || !k.book) throw new Error('not a Pinterest Studio for Authors book kit');
-      const { cover, ...bookRest } = k.book;
+      const { cover, bg, ...bookRest } = k.book;
       Object.assign(book, bookRest);
-      if (cover) book.cover = cover;
+      // '@idb' is a marker that the real image lives in IndexedDB — don't let it
+      // clobber the in-memory image; the async hydrate step fills it in.
+      if (cover && cover !== '@idb') book.cover = cover;
+      if (bg !== undefined && bg !== '@idb') book.bg = bg; // '' still clears
       Object.assign(brand.colors, k.colors);
       if (k.fonts) Object.assign(brand.fonts, k.fonts);
       if (k.style) brand.style = k.style;
@@ -1122,22 +1207,54 @@ const app = createApp({
       state.importMsg = '';
       state.showExampleNote = true; // reset restores the example content
       try { localStorage.removeItem('pinauthors.kit.v1'); } catch {}
+      if (IDB_OK) { idbDel('cover').catch(() => {}); idbDel('bg').catch(() => {}); }
     }
+    // Lean localStorage writer: everything but the image data URLs (those go to
+    // IndexedDB). When IndexedDB is unavailable, fall back to embedding images
+    // in localStorage as before, so an image is never lost mid-session.
+    const KIT_KEY = 'pinauthors.kit.v1';
+    function saveLocal() {
+      const kit = bookKit();
+      const lean = { ...kit, book: { ...kit.book,
+        cover: book.cover ? (IDB_OK ? '@idb' : book.cover) : '',
+        bg:    book.bg    ? (IDB_OK ? '@idb' : book.bg)    : '' } };
+      try { localStorage.setItem(KIT_KEY, JSON.stringify(lean)); }
+      catch { try { localStorage.setItem(KIT_KEY, JSON.stringify({ ...lean, book: { ...lean.book, cover: '', bg: '' } })); } catch {} }
+    }
+
     // Baked-in default setup (the owner's book) — applied before any saved work
     if (DEFAULT_KIT) { try { applyKit(DEFAULT_KIT); } catch {} }
-    try {
-      const saved = localStorage.getItem('pinauthors.kit.v1');
-      if (saved) applyKit(JSON.parse(saved));
-    } catch {}
-    watch(bookKit, () => {
-      if (resetting) { resetting = false; try { localStorage.removeItem('pinauthors.kit.v1'); } catch {} return; }
+    let leanSaved = null;
+    try { leanSaved = JSON.parse(localStorage.getItem(KIT_KEY)); } catch {}
+    if (leanSaved) { try { applyKit(leanSaved); } catch {} }
+
+    // `ready` gates the watchers so initial hydration below doesn't echo back to
+    // storage (and so the default cover isn't re-written to IDB on every load).
+    let ready = false;
+    watch(bookKit, () => {                 // text/colors/settings -> localStorage
+      if (!ready) return;
+      if (resetting) { resetting = false; try { localStorage.removeItem(KIT_KEY); } catch {} return; }
       state.showExampleNote = false; // first edit — it's their book now
-      const kit = bookKit();
-      try { localStorage.setItem('pinauthors.kit.v1', JSON.stringify(kit)); }
-      catch { // cover too large for localStorage — persist everything else
-        try { localStorage.setItem('pinauthors.kit.v1', JSON.stringify({ ...kit, book: { ...kit.book, cover: null } })); } catch {}
-      }
+      saveLocal();
     }, { deep: true });
+    if (IDB_OK) {                          // images -> IndexedDB, only when they change
+      watch(() => book.cover, v => { if (ready && v && v !== '@idb') idbSet('cover', v).catch(() => {}); });
+      watch(() => book.bg,    v => { if (!ready) return; (v && v !== '@idb' ? idbSet('bg', v) : idbDel('bg')).catch(() => {}); });
+    }
+
+    // Async: one-time migration of old localStorage-embedded images into IDB,
+    // then hydrate images the lean kit references. UI has already painted.
+    (async () => {
+      if (IDB_OK && leanSaved) {
+        const isData = s => typeof s === 'string' && s.startsWith('data:');
+        if (isData(leanSaved.book?.cover)) { try { await idbSet('cover', leanSaved.book.cover); } catch {} }
+        if (isData(leanSaved.book?.bg))    { try { await idbSet('bg', leanSaved.book.bg); } catch {} }
+        if (leanSaved.book?.cover === '@idb') { try { const c = await idbGet('cover'); if (c) book.cover = c; } catch {} }
+        if (leanSaved.book?.bg === '@idb')    { try { const g = await idbGet('bg');    if (g) book.bg = g;    } catch {} }
+      }
+      ready = true;
+      if (IDB_OK && leanSaved) saveLocal(); // rewrite localStorage in lean form
+    })();
 
     // ----- export-time font inlining for non-embedded pairings -----
     function bufToB64(buf) {
@@ -1244,6 +1361,7 @@ const app = createApp({
       copied: computed(() => state.copied),
       copyText, copyPack, copyAllPacks,
       fmt, quoteSize, onFile, setCover, extractFromCover,
+      bgStyle, setPinBg, clearPinBg,
       undoRematch, canUndoRematch: computed(() => !!state.undoColors),
       downloadOne, downloadAll, resetAll,
     };
