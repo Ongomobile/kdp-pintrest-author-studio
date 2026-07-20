@@ -77,7 +77,6 @@
     font-family: var(--font-body, 'Inter'), sans-serif; color: var(--ink);
   }
   .pin.std  { height: 1500px; }
-  .pin.tall { height: 2100px; }
   .pin.light { background-color: var(--canvas); }
   .pin.light.textured { background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwIDAgNDAwIDQwMCI+CiAgPGZpbHRlciBpZD0icGFwZXIiPgogICAgPGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuODUiIG51bU9jdGF2ZXM9IjIiIHNlZWQ9IjMiPjwvZmVUdXJidWxlbmNlPgogICAgPGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIDAuMSYjeEE7ICAgICAgICAgICAgICAgICAgICAgICAgICAgMCAwIDAgMCAwLjA5JiN4QTsgICAgICAgICAgICAgICAgICAgICAgICAgICAwIDAgMCAwIDAuMDgmI3hBOyAgICAgICAgICAgICAgICAgICAgICAgICAgIDAgMCAwIDAuMDggMCI+PC9mZUNvbG9yTWF0cml4PgogIDwvZmlsdGVyPgogIDxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0PgogIDxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWx0ZXI9InVybCgjcGFwZXIpIj48L3JlY3Q+Cjwvc3ZnPg=="); }
   .pin.dark  { background-color: var(--board); color: var(--cream); }
@@ -461,8 +460,8 @@
       </section>
 
       <section>
-        <h2>Reader hooks</h2>
-        <label>One per line <span class="hint">(used on the reader pin and tall pins)</span></label>
+        <h2>Reader pin bullet points</h2>
+        <label>One per line <span class="hint">(used on the reader pin)</span></label>
         <textarea rows="4" v-model="hooksText"></textarea>
       </section>
 
@@ -578,11 +577,6 @@
           <label><input type="checkbox" v-model="output.templates.d"> D — Build Your Own</label>
           <label><input type="checkbox" v-model="output.templates.f"> E — Paper Strips</label>
         </div>
-        <label>Sizes</label>
-        <div class="check-row">
-          <label><input type="checkbox" v-model="output.sizes.std"> Standard 2:3 <span class="hint">(1000×1500 — Pinterest's recommended size)</span></label>
-          <label><input type="checkbox" v-model="output.sizes.tall"> Tall <span class="hint">(1000×2100 — more room, may crop in feed)</span></label>
-        </div>
       </section>
 
       <details class="pub">
@@ -604,7 +598,7 @@
 
     <main>
       <div class="pin-grid">
-        <div v-if="activePins.length === 0" class="empty-note">Pick at least one layout and one size.</div>
+        <div v-if="activePins.length === 0" class="empty-note">Pick at least one layout.</div>
 
         <div class="preview-slot" v-for="p in activePins" :key="p.id">
           <div class="slot-head">
@@ -628,22 +622,6 @@
                 <div class="brand-footer" style="margin-top: 26px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
               </div>
 
-              <!-- ============ A tall — Spotlight ============ -->
-              <div v-if="p.id === '2a'" class="pin tall light" :class="pinClass(p)" data-pin="2a" data-name="spotlight" :style="[pinVars(p), bgStyle(p)]"
-                   style="padding: 90px 80px 60px; align-items: center;">
-                <div class="tape-badge" style="font-size: 32px; padding: 15px 42px;">{{ a.badge }}</div>
-                <h1 class="headline" style="font-size: 94px; text-align: center; margin-top: 48px;" v-html="fmt(book.title, book.highlight)"></h1>
-                <p class="subhead" style="font-size: 37px; text-align: center; margin-top: 34px; max-width: 830px;">{{ a.blurb }}</p>
-                <book-3d :cover="book.cover" :mode="book.mockup" style="width: 430px; margin-top: 64px;"></book-3d>
-                <ul class="hook-list" style="margin-top: auto; padding-top: 56px; max-width: 800px;">
-                  <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
-                </ul>
-                <amazon-badge v-if="avail.amazon" style="margin-top: auto;"></amazon-badge>
-                <div class="avail-line" style="margin-top: 18px;" v-if="avail.line">{{ avail.line }}</div>
-                <div class="cta-btn" style="font-size: 46px; padding: 30px 84px; margin-top: 36px;">{{ a.cta }}</div>
-                <div class="brand-footer" style="margin-top: 38px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
-              </div>
-
               <!-- ============ B standard — Quote ============ -->
               <div v-if="p.id === '1b'" class="pin std dark" data-pin="1b" data-name="quote" :style="[pinVars(p), bgStyle(p)]"
                    style="padding: 60px 84px 46px; align-items: center;">
@@ -656,23 +634,6 @@
                 <amazon-badge v-if="avail.amazon" small style="margin-top: auto;"></amazon-badge>
                 <div class="cta-btn" style="font-size: 40px; padding: 24px 68px; margin-top: 26px;">{{ b.cta }}</div>
                 <div class="mono-url" style="margin-top: 24px;">{{ book.url }}</div>
-              </div>
-
-              <!-- ============ B tall — Quote ============ -->
-              <div v-if="p.id === '2b'" class="pin tall dark" data-pin="2b" data-name="quote" :style="[pinVars(p), bgStyle(p)]"
-                   style="padding: 96px 84px 64px; align-items: center;">
-                <div class="stars">{{ '★'.repeat(b.stars) }}</div>
-                <div class="quote-mark" style="margin-top: 44px;">“</div>
-                <p class="quote-text" :style="{ fontSize: quoteSize(66) }" style="text-align: center; max-width: 830px;">{{ b.quote }}</p>
-                <div class="quote-attr" style="margin-top: 36px;">— {{ b.attribution }}</div>
-                <book-3d :cover="book.cover" :mode="book.mockup" style="width: 390px; margin-top: auto;"></book-3d>
-                <div class="byline" style="font-size: 36px; margin-top: 48px;">{{ book.author }}</div>
-                <ul class="hook-list" style="margin-top: auto; padding-top: 54px; max-width: 800px;">
-                  <li v-for="item in hooks.slice(0, 3)"><span class="check">✓</span> {{ item }}</li>
-                </ul>
-                <amazon-badge v-if="avail.amazon" style="margin-top: auto;"></amazon-badge>
-                <div class="cta-btn" style="font-size: 44px; padding: 28px 78px; margin-top: 34px;">{{ b.cta }}</div>
-                <div class="mono-url" style="margin-top: 32px;">{{ book.url }}</div>
               </div>
 
               <!-- ============ C standard — Reader ============ -->
@@ -691,24 +652,6 @@
                 <div class="brand-footer" style="margin-top: 26px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
               </div>
 
-              <!-- ============ C tall — Reader ============ -->
-              <div v-if="p.id === '2c'" class="pin tall light" :class="pinClass(p)" data-pin="2c" data-name="reader" :style="[pinVars(p), bgStyle(p)]"
-                   style="padding: 96px 76px 60px; align-items: center;">
-                <h1 class="headline" style="font-size: 86px; text-align: center;" v-html="fmt(c.headline, c.highlight)"></h1>
-                <div style="position: relative; width: 470px; margin-top: 78px;">
-                  <div class="tape-badge" style="font-size: 30px; padding: 13px 34px; position: absolute; top: -26px; right: -60px; z-index: 2; transform: rotate(calc(var(--badge-rotate, -2deg) * -1.5));">{{ c.corner }}</div>
-                  <book-3d :cover="book.cover" :mode="book.mockup" tilt="tilt"></book-3d>
-                </div>
-                <p class="subhead" style="font-size: 36px; text-align: center; margin-top: 90px; max-width: 820px;">{{ a.blurb }}</p>
-                <ul class="hook-list" style="margin-top: auto; padding-top: 80px; max-width: 800px;">
-                  <li v-for="item in hooks"><span class="check">✓</span> {{ item }}</li>
-                </ul>
-                <amazon-badge v-if="avail.amazon" style="margin-top: auto;"></amazon-badge>
-                <div class="avail-line" style="margin-top: 18px;" v-if="avail.line">{{ avail.line }}</div>
-                <div class="cta-btn" style="font-size: 44px; padding: 28px 76px; margin-top: 34px;">{{ c.cta }}</div>
-                <div class="brand-footer" style="margin-top: 36px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
-              </div>
-
               <!-- ============ D standard — Build Your Own ============ -->
               <div v-if="p.id === '1d'" class="pin std light" :class="pinClass(p)" data-pin="1d" data-name="build-your-own" :style="[pinVars(p), bgStyleD(p)]"
                    style="padding: 96px 84px 76px; align-items: center; justify-content: center; text-align: center;">
@@ -718,30 +661,12 @@
                 <div class="brand-footer" style="margin-top: 58px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
               </div>
 
-              <!-- ============ D tall — Build Your Own ============ -->
-              <div v-if="p.id === '2d'" class="pin tall light" :class="pinClass(p)" data-pin="2d" data-name="build-your-own" :style="[pinVars(p), bgStyleD(p)]"
-                   style="padding: 130px 84px 100px; align-items: center; justify-content: center; text-align: center;">
-                <h1 class="headline" style="font-size: 120px; text-align: center;" v-html="fmt(d.headline, d.highlight)"></h1>
-                <p class="subhead" style="font-size: 44px; text-align: center; margin-top: 44px; max-width: 820px;" v-if="d.subhead">{{ d.subhead }}</p>
-                <div class="cta-btn" style="font-size: 52px; padding: 34px 96px; margin-top: 72px;" v-if="d.cta">{{ d.cta }}</div>
-                <div class="brand-footer" style="margin-top: 74px; font-size: 40px;"><span class="rule"></span><span class="byline">{{ book.author }}</span><span class="rule"></span></div>
-              </div>
-
               <!-- ============ F standard — Paper Strips ============ -->
               <div v-if="p.id === '1f'" class="pin std dark" data-pin="1f" data-name="paper-strips"
                    :style="[pinVars(p), bgStyleF(p)]"
                    style="padding: 70px 44px;">
                 <div class="strips-wrap" style="gap: 26px;">
                   <paper-strip v-for="(line, i) in parsedStrips" :key="i" :text="line" :seed="i" size="78px"></paper-strip>
-                </div>
-              </div>
-
-              <!-- ============ F tall — Paper Strips ============ -->
-              <div v-if="p.id === '2f'" class="pin tall dark" data-pin="2f" data-name="paper-strips"
-                   :style="[pinVars(p), bgStyleF(p)]"
-                   style="padding: 96px 44px;">
-                <div class="strips-wrap" style="gap: 34px;">
-                  <paper-strip v-for="(line, i) in parsedStrips" :key="i" :text="line" :seed="i" size="92px"></paper-strip>
                 </div>
               </div>
 
@@ -860,7 +785,7 @@ function defaultBrand() {
 }
 // Per-template overrides: each design (a/b/c) holds only the fields it changes;
 // anything absent inherits from the shared `brand` (see resolvedFor).
-function defaultOverrides() { return { a: {}, b: {}, c: {}, d: {}, e: {}, f: {} }; }
+function defaultOverrides() { return { a: {}, b: {}, c: {}, d: {}, e: {}, f: {}, g: {} }; }
 function defaultBook() {
   return {
     title: 'The Midnight\nLighthouse',
@@ -918,7 +843,7 @@ const app = createApp({
     const state = reactive({
       hooksText: 'Small-town secrets & slow-burn romance\nA mystery 40 years in the making\nPerfect for fans of Kristin Hannah',
       avail: { amazon: true, line: 'Paperback · Kindle · Kindle Unlimited' },
-      output: { templates: { a: true, b: true, c: true, d: true, f: true }, sizes: { std: true, tall: false } },
+      output: { templates: { a: true, b: true, c: true, d: true, f: true } },
       exporting: false, copied: '',
       importMsg: '',
       undoColors: null, // palette snapshot from before the last "re-match colors"
@@ -1299,14 +1224,14 @@ const app = createApp({
     const NAMES = { a: 'spotlight pin', b: 'quote pin', c: 'reader pin', d: 'build-your-own pin', f: 'paper-strips pin' };
     const activePins = computed(() => {
       const pins = [];
-      for (const [sizeKey, row] of [['std', '1'], ['tall', '2']]) {
-        if (!state.output.sizes[sizeKey]) continue;
-        for (const t of ['a', 'b', 'c', 'd', 'f']) {
-          if (!state.output.templates[t]) continue;
-          // Paper Strips keeps its internal key 'f' (In Hand used to be 'e'), but
-          // shows as E in the UI so the slot labels run A–E with no gap.
-          pins.push({ id: row + t, label: row + (t === 'f' ? 'e' : t), name: NAMES[t], w: 1000, h: sizeKey === 'std' ? 1500 : 2100 });
-        }
+      // Every pin is the standard 1000x1500 now, so the ids keep their '1' row
+      // prefix and nothing users have already downloaded gets renamed.
+      for (const t of ['a', 'b', 'c', 'd', 'f']) {
+        if (!state.output.templates[t]) continue;
+        // Paper Strips keeps its internal key 'f' (In Hand used to be 'e') but
+        // shows as E, so the slot labels run A–E with no gap.
+        const shown = t === 'f' ? 'e' : t;
+        pins.push({ id: '1' + t, label: '1' + shown, name: NAMES[t], w: 1000, h: 1500 });
       }
       return pins;
     });
@@ -1541,7 +1466,7 @@ const app = createApp({
       Object.assign(brand.colors, k.colors);
       if (k.fonts) Object.assign(brand.fonts, k.fonts);
       if (k.style) brand.style = k.style;
-      if (k.overrides) { for (const t of ['a', 'b', 'c', 'd', 'e', 'f']) overrides[t] = k.overrides[t] || {}; }
+      if (k.overrides) { for (const t of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) overrides[t] = k.overrides[t] || {}; }
       if (k.a) Object.assign(a, k.a);
       if (k.b) Object.assign(b, k.b);
       if (k.c) Object.assign(c, k.c);
