@@ -266,6 +266,42 @@
   details.pub summary { font-weight: 800; font-size: 14px; cursor: pointer; }
   details.pub ol { margin: 10px 0 0 18px; font-size: 13px; line-height: 1.7; color: var(--ui-muted); }
   .hint-p { font-size: 12px; color: var(--ui-muted); margin: 10px 0 8px; line-height: 1.5; }
+
+  /* ---- field markers: where a field's words actually end up ---- */
+  /* The copy pack is assembled from fields spread across several sections, so
+     every field says up front whether it prints on the image, feeds the
+     ready-to-paste Pinterest text, or both. */
+  .ftag {
+    display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 1px 5px; border-radius: 999px;
+    border: 1.2px solid var(--ui-ink); margin-left: 5px; vertical-align: 1px;
+  }
+  .ftag-pin { background: var(--ui-gold); color: var(--ui-ink); }
+  .ftag-copy { background: var(--ui-paper); color: var(--ui-muted); }
+  .ftag-legend {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+    font-size: 11px; color: var(--ui-muted); line-height: 1.5;
+    margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px dashed var(--ui-gold);
+  }
+  .ftag-legend .ftag { margin-left: 0; }
+
+  /* ---- per-pin sections: collapsed unless that pin is switched on ---- */
+  details.pin-sec { margin-bottom: 14px; }
+  details.pin-sec > summary {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--ui-gold); display: inline-block; padding: 4px 12px;
+    transform: rotate(-1deg); margin-bottom: 6px; cursor: pointer; list-style: none;
+  }
+  details.pin-sec > summary::-webkit-details-marker { display: none; }
+  details.pin-sec > summary::after { content: ' ▸'; }
+  details.pin-sec[open] > summary::after { content: ' ▾'; }
+  details.pin-sec.off > summary { background: var(--ui-paper); color: var(--ui-muted); border: 1.2px dashed var(--ui-muted); }
+  details.pin-sec .off-note { font-size: 11px; color: var(--ui-muted); margin: 8px 0 0; }
+  .still-example {
+    font-size: 11.5px; line-height: 1.5; color: var(--ui-ink);
+    background: var(--ui-paper); border-left: 4px solid var(--ui-gold);
+    padding: 7px 10px; margin: 10px 0 0;
+  }
   .acw-credit {
     display: flex; align-items: center; gap: 10px; margin-top: 24px; padding-top: 16px;
     border-top: 1px solid var(--ui-gold); font-size: 12.5px; color: var(--ui-muted);
@@ -361,6 +397,12 @@
         <button class="example-note-close" @click="showExampleNote = false" title="Dismiss">×</button>
         <b>This is an example book.</b> Everything you see is sample content. Replace it with your own book below, and your changes save automatically in this browser.
       </div>
+      <div class="ftag-legend">
+        <span>Every field is marked with where its words end up:</span>
+        <span><span class="ftag ftag-pin">on pin</span> printed on the image</span>
+        <span><span class="ftag ftag-copy">in copy</span> feeds the Pinterest text under each pin</span>
+      </div>
+
       <section>
         <h2>Your book</h2>
         <div class="btn-row">
@@ -368,118 +410,41 @@
           <span class="hint">clears everything you entered</span>
         </div>
 
-        <label>Book cover <span class="hint">(pin colors are matched to it automatically)</span></label>
+        <label>Book cover <span class="ftag ftag-pin">on pin</span> <span class="hint">(pin colors are matched to it automatically)</span></label>
         <div class="file-row">
           <img class="cover-thumb" :src="book.cover" alt="">
           <input type="file" accept="image/*" @change="onFile($event, setCover)">
         </div>
         <div class="import-msg" v-if="importMsg">{{ importMsg }}</div>
 
-        <label>Book title <span class="hint">(line breaks kept)</span></label>
+        <label>Book title <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(line breaks kept)</span></label>
         <textarea rows="2" v-model="book.title"></textarea>
-        <label>Highlight word <span class="hint">(word in the title shown in your accent color)</span></label>
+        <label>Highlight word <span class="ftag ftag-pin">on pin</span> <span class="hint">(word in the title shown in your accent color)</span></label>
         <input type="text" v-model="book.highlight">
-        <label>Author name</label>
+        <label>Author name <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span></label>
         <input type="text" v-model="book.author">
-        <label>Website <span class="hint">(shown on the quote pin)</span></label>
+        <label>Website <span class="ftag ftag-pin">on pin</span> <span class="hint">(shown on the quote pin)</span></label>
         <input type="text" v-model="book.url">
       </section>
 
       <section>
-        <h2>Spotlight pin (A) — new release</h2>
-        <label>Badge <span class="hint">(small label at the top, e.g. NEW RELEASE)</span></label>
-        <input type="text" v-model="a.badge">
-        <label>Marketing blurb</label>
-        <textarea rows="3" v-model="a.blurb"></textarea>
-        <label>Button text</label>
-        <input type="text" v-model="a.cta">
-      </section>
-
-      <section>
-        <h2>Quote pin (B) — review spotlight</h2>
-        <label>Review quote <span class="hint">(no quotation marks needed)</span></label>
-        <textarea rows="3" v-model="b.quote"></textarea>
-        <label>Attribution <span class="hint">(who said it)</span></label>
-        <input type="text" v-model="b.attribution">
-        <label>Star rating</label>
-        <select v-model.number="b.stars">
-          <option :value="5">★★★★★ — 5 stars</option>
-          <option :value="4">★★★★ — 4 stars</option>
-        </select>
-        <label>Button text</label>
-        <input type="text" v-model="b.cta">
-      </section>
-
-      <section>
-        <h2>Reader pin (C) — who it's for</h2>
-        <label>Headline <span class="hint">(line breaks kept)</span></label>
-        <textarea rows="2" v-model="c.headline"></textarea>
-        <label>Highlight word <span class="hint">(shown in your accent color)</span></label>
-        <input type="text" v-model="c.highlight">
-        <label>Corner tape <span class="hint">(short label on the book corner, e.g. OUT NOW)</span></label>
-        <input type="text" v-model="c.corner">
-        <label>Button text</label>
-        <input type="text" v-model="c.cta">
-      </section>
-
-      <section>
-        <h2>Build-your-own pin (D)</h2>
-        <p class="hint-p">A blank canvas: your background image plus a headline, subheadline, and button.</p>
-        <label>Headline <span class="hint">(line breaks kept)</span></label>
-        <textarea rows="2" v-model="d.headline"></textarea>
-        <label>Highlight word <span class="hint">(shown in your accent color)</span></label>
-        <input type="text" v-model="d.highlight">
-        <label>Subheadline</label>
-        <textarea rows="2" v-model="d.subhead"></textarea>
-        <label>Button text</label>
-        <input type="text" v-model="d.cta">
-        <label>Background image <span class="hint">(your own — sits behind the pin)</span></label>
-        <div class="file-row">
-          <img v-if="book.bgD" class="bg-thumb" :src="book.bgD" alt="">
-          <input type="file" accept="image/*" @change="onFile($event, setBgD)">
-        </div>
-        <template v-if="book.bgD">
-          <div class="btn-row" style="margin-top:6px">
-            <button class="btn-sticker btn-small btn-ghost" @click="clearBgD">Remove background</button>
-          </div>
-          <label>Text readability <span class="hint">(overlay strength — raise it if text is hard to read)</span></label>
-          <div class="slider-row">
-            <input type="range" min="0" max="0.85" step="0.05" v-model.number="book.bgDScrim">
-            <span class="hint">{{ Math.round(book.bgDScrim * 100) }}%</span>
-          </div>
-        </template>
-      </section>
-
-      <section>
-        <h2>Paper-strips pin (E)</h2>
-        <p class="hint-p">Each line becomes its own torn notebook-paper strip in handwritten marker. Keep each line short so it fits on one strip. The strips sit on a lavender-field photo, tinted by the board colour (change it via the design controls, scoped to Paper Strips) — or upload your own photo as the "Pin background image" (Design &amp; style) and tick <b>Paper Strips</b>.</p>
-        <label>Strip lines <span class="hint">(one strip per line)</span></label>
-        <textarea rows="5" v-model="f.stripsText"></textarea>
-        <label>Listicle title <span class="hint">(powers the Pinterest copy — not shown on the pin)</span></label>
-        <input type="text" v-model="f.title">
-      </section>
-
-      <section>
-        <h2>Reader pin bullet points</h2>
-        <label>One per line <span class="hint">(used on the reader pin)</span></label>
-        <textarea rows="4" v-model="hooksText"></textarea>
-      </section>
-
-      <section>
-        <h2>Availability</h2>
+        <h2>Pins to make</h2>
+        <p class="hint-p">Pick your designs first. Only the ones you tick get a preview, a copy pack, and a section below.</p>
         <div class="check-row">
-          <label><input type="checkbox" v-model="avail.amazon"> Show "Available on Amazon" badge</label>
+          <label><input type="checkbox" v-model="output.templates.a"> A: Spotlight</label>
+          <label><input type="checkbox" v-model="output.templates.b"> B: Quote</label>
+          <label><input type="checkbox" v-model="output.templates.c"> C: Reader</label>
+          <label><input type="checkbox" v-model="output.templates.d"> D: Build Your Own</label>
+          <label><input type="checkbox" v-model="output.templates.f"> E: Paper Strips</label>
         </div>
-        <label>Formats line <span class="hint">(shown under the badge)</span></label>
-        <input type="text" v-model="avail.line">
       </section>
 
       <section>
-        <h2>Get found — Pinterest SEO</h2>
-        <p class="hint-p">Pinterest is a search engine for readers. These answers power the ready-to-paste title, description, alt text, and board name that appear under every pin.</p>
-        <label>Genre / shelf <span class="hint">(the shelf a reader would look on)</span></label>
+        <h2>Get found: Pinterest SEO</h2>
+        <p class="hint-p">Pinterest is a search engine for readers. <b>None of this prints on the image.</b> It all powers the ready-to-paste title, description, alt text, board name, and hashtags under every pin. It's the half of the copy your per-pin wording doesn't control.</p>
+        <label>Genre / shelf <span class="ftag ftag-copy">in copy</span> <span class="hint">(the shelf a reader would look on)</span></label>
         <input type="text" v-model="seo.genre" placeholder='e.g. "small-town romance" or "cozy mystery"'>
-        <label>Book type</label>
+        <label>Book type <span class="ftag ftag-copy">in copy</span> <span class="hint">(fiction gets a "your next read" angle; nonfiction leads with your search phrase)</span></label>
         <select v-model="seo.kind">
           <option value="novel">Novel (fiction)</option>
           <option value="book">Book (general)</option>
@@ -490,17 +455,112 @@
           <option value="children's book">Children's book</option>
           <option value="poetry collection">Poetry collection</option>
         </select>
-        <label>Your ideal reader <span class="hint">(comp authors work great here)</span></label>
+        <label>Your ideal reader <span class="ftag ftag-copy">in copy</span> <span class="hint">(comp authors work great here)</span></label>
         <input type="text" v-model="seo.audience" placeholder='e.g. "fans of Kristin Hannah and slow-burn romance"'>
-        <label>Primary search phrase <span class="hint">(what readers type — leave blank to use "&lt;genre&gt; books")</span></label>
+        <label>Primary search phrase <span class="ftag ftag-copy">in copy</span> <span class="hint">(what readers type; leave blank to use "&lt;genre&gt; books")</span></label>
         <input type="text" v-model="seo.keyword" placeholder='e.g. "beach reads 2026"'>
-        <label>Supporting phrases <span class="hint">(optional, comma-separated — woven into descriptions)</span></label>
+        <label>Supporting phrases <span class="ftag ftag-copy">in copy</span> <span class="hint">(optional, comma-separated, woven into descriptions)</span></label>
         <input type="text" v-model="seo.keywords2" placeholder='e.g. "books to read this summer, TBR list"'>
-        <label>Hashtags <span class="hint">(optional, comma-separated — leave blank to auto-build them from your genre &amp; keywords)</span></label>
+        <label>Hashtags <span class="ftag ftag-copy">in copy</span> <span class="hint">(optional, comma-separated, 5 max; leave blank to auto-build them from your genre &amp; keywords)</span></label>
         <input type="text" v-model="seo.hashtags" placeholder='e.g. "cozy mystery, beach reads, book recommendations"'>
-        <label>Destination link <span class="hint">(your Amazon page or book page — where a click should land)</span></label>
+        <label>Destination link <span class="ftag ftag-copy">in copy</span> <span class="hint">(your Amazon page or book page, where a click should land)</span></label>
         <input type="text" v-model="seo.link" placeholder="https://amazon.com/dp/…">
       </section>
+
+      <section>
+        <h2>Availability</h2>
+        <div class="check-row">
+          <label><input type="checkbox" v-model="avail.amazon"> Show "Available on Amazon" badge <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span></label>
+        </div>
+        <label>Formats line <span class="ftag ftag-pin">on pin</span> <span class="hint">(shown under the badge)</span></label>
+        <input type="text" v-model="avail.line">
+      </section>
+
+      <details class="pin-sec" :class="{ off: !output.templates.a }" :open="output.templates.a">
+        <summary>Spotlight pin (A): new release</summary>
+        <p class="off-note" v-if="!output.templates.a">Not selected. Tick <b>A: Spotlight</b> above to make this pin.</p>
+        <p class="still-example" v-if="stillExample.a">Still the built-in example text. Replace it with your own words.</p>
+        <label>Badge <span class="ftag ftag-pin">on pin</span> <span class="hint">(small label at the top, e.g. NEW RELEASE)</span></label>
+        <input type="text" v-model="a.badge">
+        <label>Marketing blurb <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span></label>
+        <textarea rows="3" v-model="a.blurb"></textarea>
+        <label>Button text <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(named in the alt text)</span></label>
+        <input type="text" v-model="a.cta">
+      </details>
+
+      <details class="pin-sec" :class="{ off: !output.templates.b }" :open="output.templates.b">
+        <summary>Quote pin (B): review spotlight</summary>
+        <p class="off-note" v-if="!output.templates.b">Not selected. Tick <b>B: Quote</b> above to make this pin.</p>
+        <p class="still-example" v-if="stillExample.b">Still the built-in example text. Replace it with your own words.</p>
+        <label>Review quote <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(no quotation marks needed)</span></label>
+        <textarea rows="3" v-model="b.quote"></textarea>
+        <label>Attribution <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(who said it)</span></label>
+        <input type="text" v-model="b.attribution">
+        <label>Star rating <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span></label>
+        <select v-model.number="b.stars">
+          <option :value="5">★★★★★ (5 stars)</option>
+          <option :value="4">★★★★ (4 stars)</option>
+        </select>
+        <label>Button text <span class="ftag ftag-pin">on pin</span></label>
+        <input type="text" v-model="b.cta">
+      </details>
+
+      <details class="pin-sec" :class="{ off: !output.templates.c }" :open="output.templates.c">
+        <summary>Reader pin (C): who it's for</summary>
+        <p class="off-note" v-if="!output.templates.c">Not selected. Tick <b>C: Reader</b> above to make this pin.</p>
+        <p class="still-example" v-if="stillExample.c">Still the built-in example text. Replace it with your own words.</p>
+        <label>Headline <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(line breaks kept)</span></label>
+        <textarea rows="2" v-model="c.headline"></textarea>
+        <label>Highlight word <span class="ftag ftag-pin">on pin</span> <span class="hint">(shown in your accent color)</span></label>
+        <input type="text" v-model="c.highlight">
+        <label>Corner tape <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(short label on the book corner, e.g. OUT NOW)</span></label>
+        <input type="text" v-model="c.corner">
+        <label>Button text <span class="ftag ftag-pin">on pin</span></label>
+        <input type="text" v-model="c.cta">
+        <label>Bullet points <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(one per line; the pin shows the first three)</span></label>
+        <textarea rows="4" v-model="hooksText"></textarea>
+      </details>
+
+      <details class="pin-sec" :class="{ off: !output.templates.d }" :open="output.templates.d">
+        <summary>Build-your-own pin (D)</summary>
+        <p class="off-note" v-if="!output.templates.d">Not selected. Tick <b>D: Build Your Own</b> above to make this pin.</p>
+        <p class="hint-p">A blank canvas: your background image plus a headline, subheadline, and button.</p>
+        <p class="still-example" v-if="stillExample.d">Still the built-in example text. Replace it with your own words, or this pin's copy will read "Build your own pin".</p>
+        <label>Headline <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(line breaks kept)</span></label>
+        <textarea rows="2" v-model="d.headline"></textarea>
+        <label>Highlight word <span class="ftag ftag-pin">on pin</span> <span class="hint">(shown in your accent color)</span></label>
+        <input type="text" v-model="d.highlight">
+        <label>Subheadline <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span></label>
+        <textarea rows="2" v-model="d.subhead"></textarea>
+        <label>Button text <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(named in the alt text)</span></label>
+        <input type="text" v-model="d.cta">
+        <label>Background image <span class="ftag ftag-pin">on pin</span> <span class="hint">(your own, sits behind the pin)</span></label>
+        <div class="file-row">
+          <img v-if="book.bgD" class="bg-thumb" :src="book.bgD" alt="">
+          <input type="file" accept="image/*" @change="onFile($event, setBgD)">
+        </div>
+        <template v-if="book.bgD">
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn-sticker btn-small btn-ghost" @click="clearBgD">Remove background</button>
+          </div>
+          <label>Text readability <span class="hint">(overlay strength; raise it if text is hard to read)</span></label>
+          <div class="slider-row">
+            <input type="range" min="0" max="0.85" step="0.05" v-model.number="book.bgDScrim">
+            <span class="hint">{{ Math.round(book.bgDScrim * 100) }}%</span>
+          </div>
+        </template>
+      </details>
+
+      <details class="pin-sec" :class="{ off: !output.templates.f }" :open="output.templates.f">
+        <summary>Paper-strips pin (E)</summary>
+        <p class="off-note" v-if="!output.templates.f">Not selected. Tick <b>E: Paper Strips</b> above to make this pin.</p>
+        <p class="hint-p">Each line becomes its own torn notebook-paper strip in handwritten marker. Keep each line short so it fits on one strip. The strips sit on a lavender-field photo, tinted by the board colour (change it under Design, scoped to Paper Strips), or upload your own photo as the "Pin background image" and tick <b>Paper Strips</b>.</p>
+        <p class="still-example" v-if="stillExample.f">Still the built-in example text. Replace it with your own words, or this pin will advertise a book you didn't write.</p>
+        <label>Strip lines <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(one strip per line)</span></label>
+        <textarea rows="5" v-model="f.stripsText"></textarea>
+        <label>Listicle title <span class="ftag ftag-copy">in copy</span> <span class="hint">(powers the Pinterest copy, not shown on the pin)</span></label>
+        <input type="text" v-model="f.title">
+      </details>
 
       <section>
         <h2>Design</h2>
@@ -513,13 +573,13 @@
           <option value="d">Build Your Own only</option>
           <option value="f">Paper Strips only</option>
         </select>
-        <div class="import-msg" v-if="scope !== 'all'">Editing {{ scopeName[scope] }} — these changes apply only to this template.</div>
+        <div class="import-msg" v-if="scope !== 'all'">Editing {{ scopeName[scope] }}. These changes apply only to this template.</div>
         <div class="btn-row" style="margin-top:8px">
           <button class="btn-sticker btn-small btn-ghost" @click="extractFromCover(true)">Re-match colors to cover</button>
           <button class="btn-sticker btn-small btn-ghost" v-if="canUndoRematch" @click="undoRematch" title="Put the colors back the way they were before the last re-match">Undo re-match</button>
           <button class="btn-sticker btn-small btn-ghost" v-if="scopeOverridden" @click="resetScope" title="Clear this template's custom colors and style so it inherits the shared look again">↺ Reset {{ scopeName[scope] }} to shared</button>
         </div>
-        <label>Colors <span class="hint">(tap a square to change it)</span></label>
+        <label>Colors <span class="ftag ftag-pin">on pin</span> <span class="hint">(tap a square to change it)</span></label>
         <div class="color-grid">
           <div class="swatch" title="The pin's base background color"><input type="color" :value="curColors.canvas" @input="setColor('canvas', $event.target.value)"> Background</div>
           <div class="swatch" title="Headlines and body text"><input type="color" :value="curColors.ink" @input="setColor('ink', $event.target.value)"> Text</div>
@@ -527,23 +587,23 @@
           <div class="swatch" title="The decorative badge strips"><input type="color" :value="curColors.gold" @input="setColor('gold', $event.target.value)"> Badge accent</div>
           <div class="swatch" title="Background of the dark quote pin"><input type="color" :value="curColors.board" @input="setColor('board', $event.target.value)"> Dark pin background</div>
         </div>
-        <label>Fonts <span class="hint">(applies to all templates)</span></label>
+        <label>Fonts <span class="ftag ftag-pin">on pin</span> <span class="hint">(applies to all templates)</span></label>
         <select v-model="fontPairId">
           <option v-for="fp in fontPairs" :value="fp.id">{{ fp.label }}</option>
         </select>
-        <label>Style</label>
+        <label>Style <span class="ftag ftag-pin">on pin</span></label>
         <select :value="curStyle" @change="setStyle($event.target.value)">
-          <option value="soft">Elegant — soft shadows &amp; rounded</option>
-          <option value="clean">Modern — flat &amp; minimal</option>
-          <option value="workshop">Handmade — paper grain &amp; taped-on labels</option>
-          <option value="bold">Bold — thick lines &amp; pills</option>
+          <option value="soft">Elegant: soft shadows &amp; rounded</option>
+          <option value="clean">Modern: flat &amp; minimal</option>
+          <option value="workshop">Handmade: paper grain &amp; taped-on labels</option>
+          <option value="bold">Bold: thick lines &amp; pills</option>
         </select>
-        <label>Book mockup <span class="hint">(how your cover appears on the pins)</span></label>
-        <select v-model="book.mockup" title="3D shows your book at an angle, like a hardcover sitting on a table — visible pages, thickness, and shadow. Flat shows just the cover, face-on.">
-          <option value="3d">3D — angled hardcover with pages &amp; shadow</option>
-          <option value="flat">Flat — just the cover, straight on</option>
+        <label>Book mockup <span class="ftag ftag-pin">on pin</span> <span class="ftag ftag-copy">in copy</span> <span class="hint">(how your cover appears; also named in the alt text)</span></label>
+        <select v-model="book.mockup" title="3D shows your book at an angle, like a hardcover sitting on a table, with visible pages, thickness, and shadow. Flat shows just the cover, face-on.">
+          <option value="3d">3D: angled hardcover with pages &amp; shadow</option>
+          <option value="flat">Flat: just the cover, straight on</option>
         </select>
-        <label>Pin background image <span class="hint">(optional — sits behind the pin, in place of the plain color)</span></label>
+        <label>Pin background image <span class="ftag ftag-pin">on pin</span> <span class="hint">(optional, sits behind the pin in place of the plain color)</span></label>
         <div class="file-row">
           <img v-if="book.bg" class="bg-thumb" :src="book.bg" alt="">
           <input type="file" accept="image/*" @change="onFile($event, setPinBg)">
@@ -559,7 +619,7 @@
             <label><input type="checkbox" v-model="book.bgOn.c"> Reader</label>
             <label><input type="checkbox" v-model="book.bgOn.f"> Paper Strips</label>
           </div>
-          <label>Text readability <span class="hint">(overlay strength — raise it if text is hard to read)</span></label>
+          <label>Text readability <span class="hint">(overlay strength; raise it if text is hard to read)</span></label>
           <div class="slider-row">
             <input type="range" min="0" max="0.85" step="0.05" v-model.number="book.bgScrim">
             <span class="hint">{{ Math.round(book.bgScrim * 100) }}%</span>
@@ -567,26 +627,14 @@
         </template>
       </section>
 
-      <section>
-        <h2>Output</h2>
-        <label>Pin designs</label>
-        <div class="check-row">
-          <label><input type="checkbox" v-model="output.templates.a"> A — Spotlight</label>
-          <label><input type="checkbox" v-model="output.templates.b"> B — Quote</label>
-          <label><input type="checkbox" v-model="output.templates.c"> C — Reader</label>
-          <label><input type="checkbox" v-model="output.templates.d"> D — Build Your Own</label>
-          <label><input type="checkbox" v-model="output.templates.f"> E — Paper Strips</label>
-        </div>
-      </section>
-
       <details class="pub">
         <summary>Publishing checklist</summary>
         <ol>
-          <li>Upload the PNG and set the <b>destination link</b> to your Amazon page or website — the pin link is the clickable thing, not the image.</li>
+          <li>Upload the PNG and set the <b>destination link</b> to your Amazon page or website. The pin link is the clickable thing, not the image.</li>
           <li>Title ≤100 chars, book title + genre keyword first. Description ≤500 chars, natural keywords, no hashtag walls.</li>
           <li>Add alt text describing the book and cover.</li>
           <li>Paste the hashtags at the end of the description (5 max).</li>
-          <li>Space out the variations — don't post them all the same day.</li>
+          <li>Space out the variations. Don't post them all the same day.</li>
         </ol>
       </details>
 
@@ -681,7 +729,7 @@
                 {{ copied === p.id + ':all' ? 'Copied ✓' : 'Copy all' }}
               </button>
             </div>
-            <p class="cp-note">Written from your sidebar answers — skim it for any leftover example wording.</p>
+            <p class="cp-note">Written from your sidebar answers. Skim it for any leftover example wording.</p>
             <div class="cp-row" v-for="f in packFields" :key="f.key">
               <div class="cp-label">
                 {{ f.label }}
@@ -752,26 +800,26 @@ const { createApp, ref, reactive, computed, watch, watchEffect } = Vue;
 // in this file (works offline); the rest load from Google Fonts for preview and
 // are inlined at export time.
 const FONT_PAIRS = [
-  { id: 'playfair', label: 'Literary — Playfair Display', display: 'Playfair Display', body: 'Source Sans 3', dw: '400;700;800;900', bw: '400;600;700', tracking: '-0.01em' },
-  { id: 'cormorant', label: 'Classic — Cormorant Garamond', display: 'Cormorant Garamond', body: 'Inter', dw: '500;600;700', bw: '', tracking: '0em' },
-  { id: 'lora', label: 'Editorial — Lora', display: 'Lora', body: 'Inter', dw: '400;500;600;700', bw: '', tracking: '0em' },
-  { id: 'libre', label: 'Bookish — Libre Baskerville', display: 'Libre Baskerville', body: 'Inter', dw: '400;700', bw: '', tracking: '-0.005em' },
-  { id: 'ebgaramond', label: 'Timeless — EB Garamond', display: 'EB Garamond', body: 'Inter', dw: '400;600;700;800', bw: '', tracking: '0em' },
-  { id: 'crimson', label: 'Refined — Crimson Pro', display: 'Crimson Pro', body: 'Inter', dw: '400;600;700;900', bw: '', tracking: '0em' },
-  { id: 'spectral', label: 'Sophisticated — Spectral', display: 'Spectral', body: 'Inter', dw: '400;600;700;800', bw: '', tracking: '-0.005em' },
-  { id: 'caslon', label: 'Traditional — Libre Caslon', display: 'Libre Caslon Text', body: 'Inter', dw: '400;700', bw: '', tracking: '0em' },
-  { id: 'cardo', label: 'Scholarly — Cardo', display: 'Cardo', body: 'Inter', dw: '400;700', bw: '', tracking: '0em' },
-  { id: 'theano', label: 'High fashion — Theano Didot', display: 'Theano Didot', body: 'Inter', dw: '400', bw: '', tracking: '0.01em' },
-  { id: 'young', label: 'Warm & sturdy — Young Serif', display: 'Young Serif', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
-  { id: 'benne', label: 'Gentle — Benne', display: 'Benne', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
-  { id: 'inter', label: 'Bold & modern — Inter', display: 'Inter', body: 'Inter', tracking: '-0.03em' },
-  { id: 'montserrat', label: 'Geometric — Montserrat', display: 'Montserrat', body: 'Montserrat', dw: '400;600;700;800;900', bw: '400;600;700', tracking: '-0.02em' },
-  { id: 'opensans', label: 'Friendly — Open Sans', display: 'Open Sans', body: 'Open Sans', dw: '400;600;700;800', bw: '400;600;700', tracking: '-0.015em' },
-  { id: 'sourcesans', label: 'Clean — Source Sans Pro', display: 'Source Sans 3', body: 'Source Sans 3', dw: '400;600;700;900', bw: '400;600;700', tracking: '-0.015em' },
-  { id: 'ptsans', label: 'Practical — PT Sans', display: 'PT Sans', body: 'PT Sans', dw: '400;700', bw: '400;700', tracking: '-0.01em' },
-  { id: 'rosario', label: 'Airy — Rosario', display: 'Rosario', body: 'Rosario', dw: '400;600;700', bw: '400;600;700', tracking: '-0.005em' },
-  { id: 'abril', label: 'Dramatic — Abril Fatface', display: 'Abril Fatface', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
-  { id: 'caveat', label: 'Handwritten — Caveat + Inter', display: 'Caveat', body: 'Inter', dw: '400;600;700', bw: '', tracking: '0em' },
+  { id: 'playfair', label: 'Literary: Playfair Display', display: 'Playfair Display', body: 'Source Sans 3', dw: '400;700;800;900', bw: '400;600;700', tracking: '-0.01em' },
+  { id: 'cormorant', label: 'Classic: Cormorant Garamond', display: 'Cormorant Garamond', body: 'Inter', dw: '500;600;700', bw: '', tracking: '0em' },
+  { id: 'lora', label: 'Editorial: Lora', display: 'Lora', body: 'Inter', dw: '400;500;600;700', bw: '', tracking: '0em' },
+  { id: 'libre', label: 'Bookish: Libre Baskerville', display: 'Libre Baskerville', body: 'Inter', dw: '400;700', bw: '', tracking: '-0.005em' },
+  { id: 'ebgaramond', label: 'Timeless: EB Garamond', display: 'EB Garamond', body: 'Inter', dw: '400;600;700;800', bw: '', tracking: '0em' },
+  { id: 'crimson', label: 'Refined: Crimson Pro', display: 'Crimson Pro', body: 'Inter', dw: '400;600;700;900', bw: '', tracking: '0em' },
+  { id: 'spectral', label: 'Sophisticated: Spectral', display: 'Spectral', body: 'Inter', dw: '400;600;700;800', bw: '', tracking: '-0.005em' },
+  { id: 'caslon', label: 'Traditional: Libre Caslon', display: 'Libre Caslon Text', body: 'Inter', dw: '400;700', bw: '', tracking: '0em' },
+  { id: 'cardo', label: 'Scholarly: Cardo', display: 'Cardo', body: 'Inter', dw: '400;700', bw: '', tracking: '0em' },
+  { id: 'theano', label: 'High fashion: Theano Didot', display: 'Theano Didot', body: 'Inter', dw: '400', bw: '', tracking: '0.01em' },
+  { id: 'young', label: 'Warm & sturdy: Young Serif', display: 'Young Serif', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
+  { id: 'benne', label: 'Gentle: Benne', display: 'Benne', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
+  { id: 'inter', label: 'Bold & modern: Inter', display: 'Inter', body: 'Inter', tracking: '-0.03em' },
+  { id: 'montserrat', label: 'Geometric: Montserrat', display: 'Montserrat', body: 'Montserrat', dw: '400;600;700;800;900', bw: '400;600;700', tracking: '-0.02em' },
+  { id: 'opensans', label: 'Friendly: Open Sans', display: 'Open Sans', body: 'Open Sans', dw: '400;600;700;800', bw: '400;600;700', tracking: '-0.015em' },
+  { id: 'sourcesans', label: 'Clean: Source Sans Pro', display: 'Source Sans 3', body: 'Source Sans 3', dw: '400;600;700;900', bw: '400;600;700', tracking: '-0.015em' },
+  { id: 'ptsans', label: 'Practical: PT Sans', display: 'PT Sans', body: 'PT Sans', dw: '400;700', bw: '400;700', tracking: '-0.01em' },
+  { id: 'rosario', label: 'Airy: Rosario', display: 'Rosario', body: 'Rosario', dw: '400;600;700', bw: '400;600;700', tracking: '-0.005em' },
+  { id: 'abril', label: 'Dramatic: Abril Fatface', display: 'Abril Fatface', body: 'Inter', dw: '400', bw: '', tracking: '0em' },
+  { id: 'caveat', label: 'Handwritten: Caveat + Inter', display: 'Caveat', body: 'Inter', dw: '400;600;700', bw: '', tracking: '0em' },
 ];
 
 const TEXTURED = { workshop: true, clean: false, bold: false, soft: false };
@@ -850,6 +898,20 @@ const app = createApp({
       // "This is an example book" note — only for visitors with no saved work yet
       showExampleNote: (() => { try { return !localStorage.getItem('pinauthors.kit.v1'); } catch { return true; } })(),
     });
+
+    // A frozen copy of the built-in example wording, taken before any saved kit
+    // loads over the top of it. Sections still matching it get flagged in the
+    // sidebar — the sample book is romance boilerplate, and D and E are easy to
+    // leave untouched and ship by accident since nothing else hints at it.
+    const FACTORY = JSON.parse(JSON.stringify({ a, b, c, d, f, hooksText: state.hooksText }));
+    const untouched = (live, frozen) => JSON.stringify(live) === JSON.stringify(frozen);
+    const stillExample = computed(() => ({
+      a: untouched(a, FACTORY.a),
+      b: untouched(b, FACTORY.b),
+      c: untouched(c, FACTORY.c) && state.hooksText === FACTORY.hooksText,
+      d: untouched(d, FACTORY.d),
+      f: untouched(f, FACTORY.f),
+    }));
 
     const hooks = computed(() => state.hooksText.split('\n').map(s => s.trim()).filter(Boolean));
     // Paper Strips (f): one torn strip per non-empty line
@@ -955,7 +1017,7 @@ const app = createApp({
       const amazon = !!state.avail.amazon;
       const link = destination.value;
       const linkHost = link ? hostOf(link) : '';
-      const linkLine = link || '⚠ Set the destination link (your Amazon or book page) in the sidebar — a pin without a link sends nobody anywhere.';
+      const linkLine = link || '⚠ Set the destination link (your Amazon or book page) in the sidebar. A pin without a link sends nobody anywhere.';
       const alsoLine = kws.length ? ` Also great if you're searching for ${kws.slice(0, 2).join(' or ')}.` : '';
       const mockupWords = book.mockup === '3d' ? 'a 3D hardcover mockup of the book' : 'the book cover';
 
@@ -1362,7 +1424,7 @@ const app = createApp({
         } else { state.undoColors = null; undoScope = null; }
         if (target === 'all') Object.assign(brand.colors, next);
         else overrides[target].colors = { ...next };
-        state.importMsg = (target === 'all' ? 'Pin colors' : scopeName[target] + ' colors') + ' matched to your cover — adjust any swatch below.';
+        state.importMsg = (target === 'all' ? 'Pin colors' : scopeName[target] + ' colors') + ' matched to your cover. Adjust any swatch below.';
       } catch {
         state.importMsg = "Couldn't read the cover image.";
       }
@@ -1673,7 +1735,7 @@ const app = createApp({
       importMsg: computed(() => state.importMsg),
       showExampleNote: rw('showExampleNote'),
       fontPairs: FONT_PAIRS, fontPairId, pinClass,
-      hooks, pinVars, activePins, pinScale,
+      hooks, pinVars, activePins, pinScale, stillExample,
       scope, scopeName, curColors, setColor, curStyle, setStyle,
       scopeOverridden, resetScope,
       seo, packFields, packOf, hasLink,
